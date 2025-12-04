@@ -9,7 +9,9 @@ import io.smallrye.config.ConfigMapping;
 public interface DokkuStoreProviderConfig {
 
     String host();
+
     int port();
+
     String image();
 
 }

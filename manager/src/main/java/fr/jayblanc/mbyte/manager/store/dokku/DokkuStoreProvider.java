@@ -84,9 +84,9 @@ public class DokkuStoreProvider implements StoreProvider {
           OIDC_PROVIDER_URL=http://auth.miage23.jayblanc.fr/realms/Miage.23 \
           OIDC_CLIENT_ID=filestore \
           FILESTORE_HOME=/opt/jboss/filestore \
-ssh dokku ports:add <appname> http:80:8080
-
+    ssh dokku ports:add <appname> http:80:8080
     * */
+
     @Override
     public String createApp(String id, String owner, String name) throws StoreProviderException {
         LOGGER.log(Level.INFO, "[dokku] Creating new store apps");
