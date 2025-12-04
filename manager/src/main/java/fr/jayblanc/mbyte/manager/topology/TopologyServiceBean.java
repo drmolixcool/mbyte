@@ -37,7 +37,7 @@ public class TopologyServiceBean implements TopologyService {
     public void init() {
         LOGGER.log(Level.INFO, "Initializing topology bean");
         consulClient = Consul.builder().withHttps(config.https()).withHostAndPort(HostAndPort.fromParts(config.host(), config.port())).build();
-        serviceName = "miage24.manager";
+        serviceName = "mbyte.manager";
         instanceId = serviceName.concat(".1");
         Registration service = this.buildRegistration();
         consulClient.agentClient().register(service);
@@ -86,7 +86,7 @@ public class TopologyServiceBean implements TopologyService {
     @Override
     public String lookup(String name) {
         CatalogClient catalog = consulClient.catalogClient();
-        List<CatalogService> services =  catalog.getService("miage24.store.".concat(name)).getResponse();
+        List<CatalogService> services =  catalog.getService("mbyte.store.".concat(name)).getResponse();
         LOGGER.log(Level.INFO, "Services list: " + services);
         Optional<String> fqdn = services.stream().flatMap(s -> s.getServiceTags().stream().filter(tag -> tag.startsWith("fqdn"))).findFirst();
         if (fqdn.isPresent()) {

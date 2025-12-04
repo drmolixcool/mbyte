@@ -2,8 +2,6 @@ package fr.jayblanc.mbyte.store.search;
 
 import fr.jayblanc.mbyte.store.auth.AuthenticationService;
 import fr.jayblanc.mbyte.store.index.*;
-import fr.jayblanc.miage.filestore.store.index.*;
-import fr.miage24.filestore.store.index.*;
 import fr.jayblanc.mbyte.store.metrics.GenerateMetric;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;

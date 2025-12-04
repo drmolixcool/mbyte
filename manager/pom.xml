@@ -7,7 +7,7 @@
         <version>25-SNAPSHOT</version>
     </parent>
     <artifactId>manager</artifactId>
-    <name>The M[iage].byte project :: Store Manager</name>
+    <name>The M[iage].byte project :: Manager</name>
     <version>25.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -53,11 +53,7 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-resteasy-jaxb</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-resteasy-jackson</artifactId>
+            <artifactId>quarkus-rest-jackson</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -65,7 +61,7 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-qute</artifactId>
+            <artifactId>quarkus-rest-qute</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -86,6 +82,10 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-vertx</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-container-image-docker</artifactId>
         </dependency>
         <dependency>
             <groupId>commons-codec</groupId>
@@ -117,6 +117,7 @@
             <artifactId>docker-java-transport-httpclient5</artifactId>
             <version>${version.docker-client}</version>
         </dependency>
+
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit5</artifactId>

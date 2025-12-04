@@ -10,6 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
+import jakarta.transaction.Transactional;
 
 import java.util.UUID;
 import java.util.logging.Level;
@@ -26,6 +27,7 @@ public class CoreServiceBean implements CoreService {
     @Inject TopologyService topology;
 
     @Override
+    @Transactional(Transactional.TxType.REQUIRED)
     public Store createStore(String name) {
         LOGGER.log(Level.INFO, "Creating new store with name: {}", name);
         Store store = new Store();
@@ -48,6 +50,7 @@ public class CoreServiceBean implements CoreService {
     }
 
     @Override
+    @Transactional(Transactional.TxType.SUPPORTS)
     public Store getConnectedUserStore() throws StoreNotFoundException, CoreServiceException {
         LOGGER.log(Level.INFO, "Getting store for connected user");
         String owner = authenticationService.getConnectedProfile().getUsername();

@@ -75,3 +75,31 @@ docker volume inspect miage.24_postgres-data
 docker compose pull
 docker compose up -d
 ```
+
+7) Install Dnsmasq if not already installed
+
+```bash
+sudo apt-get install dnsmasq
+``` 
+
+8) Configure Dnsmasq for local domain resolution
+
+Create file `/etc/dnsmasq.d/mbyte.conf` with the following content:
+
+```bash
+address=/mbyte.dev.local/127.0.0.1
+address=/mbyte.dev.local/::1
+```
+
+Check file `/etc/dnsmask.com` it should contain:
+
+```bash
+listen-address=127.0.0.1
+bind-interfaces
+``` 
+
+Restart Dnsmasq service:
+
+```bash
+sudo systemctl restart dnsmasq
+``` 

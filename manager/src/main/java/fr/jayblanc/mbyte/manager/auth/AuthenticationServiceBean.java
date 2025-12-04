@@ -6,6 +6,7 @@ import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.logging.Level;
@@ -37,6 +38,7 @@ public class AuthenticationServiceBean implements AuthenticationService {
     }
 
     @Override
+    @Transactional(Transactional.TxType.REQUIRED)
     public Profile getConnectedProfile() {
         LOGGER.log(Level.FINE, "Getting connected profile");
         String connectedId = getConnectedIdentifier();
@@ -58,6 +60,7 @@ public class AuthenticationServiceBean implements AuthenticationService {
             LOGGER.log(Level.FINE, "Profile created for identifier: " + connectedId);
             profile = newprofile;
         }
+        LOGGER.log(Level.FINE, "Profile retrieved for connected identifier: " + profile);
         return profile;
     }
 

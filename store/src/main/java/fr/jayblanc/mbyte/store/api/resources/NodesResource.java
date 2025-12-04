@@ -10,8 +10,6 @@ import fr.jayblanc.mbyte.store.data.exception.DataStoreException;
 import fr.jayblanc.mbyte.store.files.FileService;
 import fr.jayblanc.mbyte.store.files.entity.Node;
 import fr.jayblanc.mbyte.store.files.exceptions.*;
-import fr.jayblanc.miage.filestore.store.files.exceptions.*;
-import fr.miage24.filestore.store.files.exceptions.*;
 import fr.jayblanc.mbyte.store.notification.NotificationServiceException;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.TemplateInstance;

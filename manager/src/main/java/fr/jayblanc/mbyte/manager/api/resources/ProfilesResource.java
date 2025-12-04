@@ -48,13 +48,13 @@ public class ProfilesResource {
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance profileView(@PathParam("id") String id, @Context UriInfo uriInfo) {
         LOGGER.log(Level.INFO, "GET /api/profiles/" + id + " (html)");
-        profile.data("profile", auth.getConnectedProfile());
+        TemplateInstance view = profile.data("profile", auth.getConnectedProfile());
         try {
-            profile.data("store", core.getConnectedUserStore());
+            view = view.data("store", core.getConnectedUserStore());
         } catch (StoreNotFoundException | CoreServiceException e ) {
             //
         }
-        return profile.instance();
+        return view;
     }
 
     @GET

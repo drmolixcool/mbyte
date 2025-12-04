@@ -4,8 +4,6 @@ import fr.jayblanc.mbyte.store.data.exception.DataNotFoundException;
 import fr.jayblanc.mbyte.store.data.exception.DataStoreException;
 import fr.jayblanc.mbyte.store.files.entity.Node;
 import fr.jayblanc.mbyte.store.files.exceptions.*;
-import fr.jayblanc.miage.filestore.store.files.exceptions.*;
-import fr.miage24.filestore.store.files.exceptions.*;
 import fr.jayblanc.mbyte.store.notification.NotificationServiceException;
 
 import java.io.InputStream;
