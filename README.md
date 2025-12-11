@@ -75,26 +75,92 @@ For local development, the easiest way is to use /etc/hosts.
 Add in /etc/hosts the following lines : 
 
 ```
-127.0.0.1	auth.mbyte.fr www.mbyte.fr proxy.mbyte.fr registry.mbyte.fr sheldon.s.mbyte.fr
+127.0.0.1	auth.mbyte.fr www.mbyte.fr proxy.mbyte.fr registry.mbyte.fr sheldon.stores.mbyte.fr
 ```
 
-Note: The proxy GUI is accessible through http://proxy.mbyte.fr:8080
+Note: You will have to add more entries for each store you create. For example, if you create a store with identifier `teststore`, you will have to add the following line : 
+
+``` 
+127.0.0.1   teststore.stores.mbyte.fr
+```
+
+#### Using dnsmasq
+
+Install Dnsmasq if not already installed
+
+```bash
+sudo apt-get install dnsmasq
+``` 
+
+Configure Dnsmasq for local domain resolution
+
+Create file `/etc/dnsmasq.d/mbyte.conf` with the following content:
+
+```bash
+address=/mbyte.fr/127.0.0.1
+address=/mbyte.fr/::1
+```
+
+Check file `/etc/dnsmask.conf` it should contain:
+
+```bash
+listen-address=127.0.0.1
+bind-interfaces
+``` 
+
+Restart Dnsmasq service:
+
+```bash
+sudo systemctl restart dnsmasq
+``` 
+
+Note: Using dnsmasq allows you to avoid adding entries for each store you create.
+
+### Creating working directories
+
+For the application to work properly, you need to create some working directories on your host machine that will be mounted as volumes in the different containers.
+The permissions for those directories must allow the containers to read and write data. Postgresql must also be able to create files in its data directory.
+
+#### Global database directory
+
+A global Postgresql container is used to store the data of the different applications (manager and auth). It must have a dedicated directory on the host machine.
+This directory must hold permissions to allow Postgresql container user (999) to read and write data.
+
+```bash
+sudo mkdir -P /var/local/mbyte
+sudo mkdir -P /var/local/mbyte/db
+sudo chown 1000:1000 /var/local/mbyte
+sudo chown 1000:999 /var/local/mbyte/db # UID/GID for postgres in the official image is typically 999:999
+sudo chmod -R 770 /var/local/mbyte
+```
+
+#### Stores directories
+
+Dynamically created stores will have their data stored in the host directory `/var/local/mbyte/stores`.
+Each store will have its own sub-directory named after the store identifier.
+Two volumes be will created for stores : db and data. This will be handled by the manager directly, only the root folder needs to be created with proper permissions.
+
+```bash
+sudo mkdir -P /var/local/mbyte/stores
+sudo chown 1000:1000 /var/local/mbyte/stores
+sudo chmod -R 770 /var/local/mbyte/stores
+```
 
 ### Running the application
 
 #### Using docker-compose
 
-To start the application, you just have to use the provided docker-compose file.
+To start the application, you can use the provided docker-compose file:
 
 ```bash
-docker compose  up --build
+docker compose up --build
 ```
 
 #### Using dev mode
 
 In dev mode, you can run the manager or the store in a local JVM or in your IDE for easier update and debugging.
 
-First stop the container you want to start locally (manager or store)
+First, stop the container you want to start locally (manager or store)
 
 ```bash
 docker compose stop manager
@@ -103,8 +169,8 @@ docker compose stop manager
 Then start the module in dev mode. In the manager folder, run : 
 ```
 export QUARKUS.TEST.CONTINUOUS-TESTING=disabled
-export MANAGER.TOPOLOGY.HOST=172.25.0.10
-export QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://172.25.0.11:5432/manager
+export MANAGER.TOPOLOGY.HOST=172.25.0.3
+export QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://172.25.0.4:5432/manager
 export QUARKUS_HTTP_PORT=8088
 mvn quarkus:dev 
 ```

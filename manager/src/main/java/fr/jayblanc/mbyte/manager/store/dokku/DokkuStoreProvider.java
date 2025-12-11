@@ -50,7 +50,7 @@ public class DokkuStoreProvider implements StoreProvider {
     }
 
     @Override
-    public List<String> listApps() throws StoreProviderException {
+    public List<String> listAllStores() throws StoreProviderException {
         LOGGER.log(Level.INFO, "[dokku] Listing store apps");
         String command = "apps:list";
         StringBuffer output = new StringBuffer();
@@ -88,7 +88,7 @@ public class DokkuStoreProvider implements StoreProvider {
     * */
 
     @Override
-    public String createApp(String id, String owner, String name) throws StoreProviderException {
+    public String createStore(String id, String owner, String name) throws StoreProviderException {
         LOGGER.log(Level.INFO, "[dokku] Creating new store apps");
         List<String> cmds = new ArrayList<>();
         cmds.add("apps:create " + owner);
@@ -130,7 +130,7 @@ public class DokkuStoreProvider implements StoreProvider {
     }
 
     @Override
-    public void destroyApp(String name) throws StoreProviderException {
+    public String destroyStore(String name) throws StoreProviderException {
         LOGGER.log(Level.INFO, "[dokku] Deleting app");
         String cmd1 = "--force apps:destroy " + name;
 
@@ -145,6 +145,8 @@ public class DokkuStoreProvider implements StoreProvider {
         } catch ( IOException | JSchException e ) {
             throw new StoreProviderException("Unable to delete app", e);
         }
+
+        return "";
     }
 
     private int execute(String username, String command, StringBuffer output) throws JSchException, IOException {

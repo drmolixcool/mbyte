@@ -32,7 +32,7 @@ public class StatusResource {
         Map<String, String> status = new HashMap<>();
         status.put("connected-profile", auth.getConnectedProfile().toString());
         status.put("status", "ok");
-        status.put("apps", manager.getProvider().listApps().stream().collect(Collectors.joining(",")));
+        status.put("apps", manager.getProvider().listAllStores().stream().collect(Collectors.joining(",")));
         return Response.ok(status).build();
     }
 

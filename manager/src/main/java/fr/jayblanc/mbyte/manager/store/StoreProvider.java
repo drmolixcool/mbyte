@@ -6,10 +6,10 @@ public interface StoreProvider {
 
     String name();
 
-    List<String> listApps() throws StoreProviderException;
+    List<String> listAllStores() throws StoreProviderException;
 
-    String createApp(String id, String owner, String name) throws StoreProviderException;
+    String createStore(String id, String owner, String name) throws StoreProviderException;
 
-    void destroyApp(String id) throws StoreProviderException;
+    String destroyStore(String id) throws StoreProviderException;
 
 }

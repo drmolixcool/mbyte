@@ -38,7 +38,7 @@ public class CoreServiceBean implements CoreService {
         store.setUsage(0);
         store.setStatus(Store.Status.PENDING);
         try {
-            String output = manager.getProvider().createApp(store.getId(), store.getOwner(), store.getName());
+            String output = manager.getProvider().createStore(store.getId(), store.getOwner(), store.getName());
             store.setLocation(topology.lookup(store.getOwner()));
             store.setStatus(Store.Status.AVAILABLE);
             store.setLog(output);
