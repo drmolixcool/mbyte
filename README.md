@@ -134,8 +134,8 @@ sudo chmod -R 777 /var/mbyte
 #### Stores directories
 
 Dynamically created stores will have their data stored in the host directory `/var/local/mbyte/stores`.
-Each store will have its own sub-directory named after the store identifier.
-Two volumes be will created for stores : db and data. This will be handled by the manager directly, only the root folder needs to be created with proper permissions.
+Each store will have its own subdirectory named after the store identifier.
+Two volumes will be created for stores: db and data. This will be handled by the manager directly, only the root folder needs to be created with proper permissions.
 
 ```bash
 sudo mkdir -p /var/mbyte/stores
@@ -180,10 +180,20 @@ You can also use the IDE to run the module in dev mode.
 Visit http://www.mbyte.fr to access the main web interface. 
 On the first visit you'll be redirected to Keycloak to create an account and login.
 Create an account of your choice by clicking on 'register' and filling all required fields (email can be user@localhost).
-Once logged in, you can create a store giving an name that will be used an DNS (aka http://mystorename.stores.mbyte.fr).
+Once logged in, you can create a store giving a name that will be used a DNS (aka http://mystorename.stores.mbyte.fr).
 As you are the store owner, you can visit your store as the SSO is configured to automatically log you in.
 
-Note: If you use /etc/hosts as domain name resolver, don't forget to add an entry for your store. (127.0.0.1 mystorename.stores.mbyte.fr)
+Note: If you use /etc/hosts as a domain name resolver, remember to add an entry for your store. (127.0.0.1 mystorename.stores.mbyte.fr)
+
+---
+
+## License
+
+This project is licensed under GPL-3.0. See file [LICENSE](LICENSE) for more information.
+
+### Contributions
+
+Extensions or modifications must use a GPL-3.0 license. Contributors must add their name to the copyright of modified files.
 
 ---
 
