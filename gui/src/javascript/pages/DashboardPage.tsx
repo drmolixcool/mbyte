@@ -1,9 +1,9 @@
-import {CCol, CContainer, CRow} from '@coreui/react'
+import {CCol, CContainer, CRow, CSpinner} from '@coreui/react'
 import {useTranslation} from 'react-i18next'
 import {CreateStoreCard, DetailStoreCard} from '../components'
 import {useManagerStatus} from '../auth/useManagerStatus'
 import {useProfile} from '../auth/useProfile'
-import {useManagerApi} from '../api/ManagerApiProvider'
+import { useManagerApi } from '../api/ManagerApiProvider'
 
 type DashboardPageProps = {
   onNotify: (message: string) => void
@@ -11,7 +11,7 @@ type DashboardPageProps = {
 
 export function DashboardPage({ onNotify }: DashboardPageProps) {
   const { t } = useTranslation()
-  const { apps, hasStore, reload: reloadStatus } = useManagerStatus()
+  const { apps, hasStore, reload: reloadStatus, isLoading } = useManagerStatus()
   const { profile } = useProfile()
   const managerApi = useManagerApi()
 
@@ -32,24 +32,38 @@ export function DashboardPage({ onNotify }: DashboardPageProps) {
 
   return (
     <CContainer fluid className="py-3">
-      <CRow className="g-3 justify-content-center">
-        {!hasStore && (
-          <CCol xs={12}>
-            <CreateStoreCard
-              onCreate={handleCreateStore}
-              disabled={false}
-              busy={false}
-            />
+      {/* remove global centering so detail card can stay left; CreateStoreCard keeps mx-auto */}
+      <CRow className="g-3">
+        {/* while we are loading the manager status, show a loader */}
+        {isLoading ? (
+          <CCol xs={12} className="d-flex justify-content-center">
+            <CSpinner />
           </CCol>
-        )}
+        ) : (
+          // une fois chargé, afficher soit la card de création soit la card de détail
+          <>
+            {!hasStore && (
+              <CCol xs={12}>
+                <CreateStoreCard
+                  onCreate={handleCreateStore}
+                  disabled={false}
+                  busy={false}
+                />
+              </CCol>
+            )}
 
-        {hasStore && storeApp && (
-          <CCol xs={12}>
-            <DetailStoreCard
-              app={storeApp}
-              onRefresh={() => reloadStatus()}
-            />
-          </CCol>
+            {hasStore && storeApp && (
+              <CCol xs={12}>
+                {/* wrapper fixe pour limiter largeur et aligner à gauche */}
+                <div style={{ maxWidth: 1200 }}>
+                  <DetailStoreCard
+                    app={storeApp}
+                    onRefresh={() => reloadStatus()}
+                  />
+                </div>
+              </CCol>
+            )}
+          </>
         )}
       </CRow>
     </CContainer>

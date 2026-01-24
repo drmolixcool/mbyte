@@ -19,6 +19,8 @@ package fr.jayblanc.mbyte.manager.core;
 import fr.jayblanc.mbyte.manager.core.entity.Environment;
 import fr.jayblanc.mbyte.manager.process.ProcessDefinition;
 
+import java.util.Set;
+
 /**
  * @author Jerome Blanchard
  */
@@ -26,7 +28,11 @@ public interface ApplicationCommand {
 
     String forAppType();
 
+    Set<ApplicationStatus> forAppStatus();
+
     String getName();
+
+    String getDescription();
 
     Integer getVersion();
 

@@ -57,7 +57,7 @@ public class DockerStoreDescriptor implements ApplicationDescriptor {
         env.addEntry(EnvKey.STORE_NAME.name(), name);
         env.addEntry(EnvKey.STORE_OWNER.name(), owner);
         env.addEntry(EnvKey.STORE_ENGINE.name(), "docker");
-        env.addEntry(EnvKey.STORE_IMAGE_NAME.name(), "jerome/store:25.1-SNAPSHOT");
+        env.addEntry(EnvKey.STORE_IMAGE_NAME.name(), "mbyte/store:25.1-SNAPSHOT");
         env.addEntry(EnvKey.STORE_NETWORK_NAME.name(), realm);
         env.addEntry(EnvKey.STORE_DB_VOLUME_NAME.name(), realm + "." + name + ".db");
         env.addEntry(EnvKey.STORE_DB_CONTAINER_NAME.name(), realm + "." + name + ".db");

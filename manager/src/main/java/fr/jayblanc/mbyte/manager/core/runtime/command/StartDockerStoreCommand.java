@@ -29,6 +29,7 @@ import fr.jayblanc.mbyte.manager.process.ProcessDefinition;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Jerome Blanchard
@@ -42,6 +43,16 @@ public class StartDockerStoreCommand implements ApplicationCommand {
     @Override
     public String forAppType() {
         return DockerStoreDescriptor.TYPE;
+    }
+
+    @Override
+    public Set<ApplicationStatus> forAppStatus() {
+        return Set.of(ApplicationStatus.CREATED, ApplicationStatus.STARTED);
+    }
+
+    @Override
+    public String getDescription() {
+        return "Start a Docker Store application along with its PostgreSQL database. Dedicated volumes and network will be created if not already present.";
     }
 
     @Override

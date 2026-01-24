@@ -32,7 +32,7 @@
       "creationInProgress": "Création en cours…"
     },
     "storeDetail": {
-      "title": "Détails du Store",
+      "title": "Boutique",
       "id": "ID",
       "name": "Nom",
       "type": "Type",
@@ -40,12 +40,25 @@
       "creationDate": "Date de création",
       "createdSince": "Créé depuis",
       "start": "Démarrer",
-      "refresh": "Actualiser",
-      "starting": "Démarrage...",
-      "running": "En cours..."
+      "refresh": "Rafraîchir",
+      "starting": "Démarrage…",
+      "running": "En cours…",
+      "loadingCommands": "Chargement des commandes…",
+      "noCommands": "Aucune commande disponible",
+      "availableCommands": "Commandes disponibles"
     },
-    "storeCreated": "Store créé avec succès",
-    "storeCreationFailed": "Échec de la création du store"
+    "storeCreated": "Boutique créée",
+    "storeCreationFailed": "Échec de la création de la boutique"
+  },
+  "commands": {
+    "START": {
+      "label": "Démarrer",
+      "description": "Démarre l'application"
+    },
+    "STOP": {
+      "label": "Arrêter",
+      "description": "Arrête l'application"
+    }
   },
   "i18n": {
     "switchToFrench": "Basculer la langue en français",

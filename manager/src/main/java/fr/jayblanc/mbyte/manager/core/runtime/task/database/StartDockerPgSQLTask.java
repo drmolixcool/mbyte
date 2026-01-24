@@ -62,7 +62,7 @@ public class StartDockerPgSQLTask extends Task {
         String dbUser = getMandatoryContextValue(DB_USER);
         String dbPass = getMandatoryContextValue(DB_PASSWORD);
 
-        Optional<Container> container = client.listContainersCmd().withNameFilter(List.of(DB_CONTAINER_NAME)).exec().stream().findFirst();
+        Optional<Container> container = client.listContainersCmd().withNameFilter(List.of(dbContainerName)).exec().stream().findFirst();
         if (container.isEmpty()) {
             CreateContainerResponse response = client.createContainerCmd(imageName)
                     .withName(dbContainerName)

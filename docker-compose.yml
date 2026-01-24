@@ -83,7 +83,7 @@ services:
           - auth.mbyte.fr
 
   manager:
-    image: jerome/manager:25.1-SNAPSHOT
+    image: mbyte/manager:25.1-SNAPSHOT
     hostname: manager
     container_name: mbyte.manager
     depends_on:

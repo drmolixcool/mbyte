@@ -30,6 +30,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -53,7 +54,7 @@ public class ProcessEngineBean implements ProcessEngine, ProcessEngineAdmin {
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public String startProcess(ProcessDefinition processDef) throws ProcessAlreadyRunningException {
-        LOGGER.info("Starting new process: " + processDef.getName());
+        LOGGER.log(Level.INFO,"Starting new process: {0}", processDef.getName());
         if (this.findRunningProcessesForApp(processDef.getAppId()).stream().anyMatch(p -> p.getName().equals(processDef.getName()))) {
             throw new ProcessAlreadyRunningException("A process with name: " + processDef.getName() + " is already running for application with id: " + processDef.getAppId());
         }
@@ -69,7 +70,7 @@ public class ProcessEngineBean implements ProcessEngine, ProcessEngineAdmin {
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public Process getProcess(String id) throws ProcessNotFoundException, AccessDeniedException {
-        LOGGER.info("Getting process: " + id);
+        LOGGER.log(Level.INFO, "Getting process: {0}", id);
         Process process = this.findById(id);
         if (!auth.getConnectedIdentifier().equals(process.getOwner())) {
             throw new AccessDeniedException("The process with id: " + id + " is not owned by the connected user");
@@ -80,7 +81,7 @@ public class ProcessEngineBean implements ProcessEngine, ProcessEngineAdmin {
     @Override
     @Transactional(Transactional.TxType.REQUIRED)
     public List<Process> findRunningProcessesForApp(String appId) {
-        LOGGER.info("Finding running processes for application: " + appId);
+        LOGGER.log(Level.INFO,"Finding running processes for application: {0}", appId);
         return em.createNamedQuery("Process.findByAppAndStatus", Process.class)
                 .setParameter("appId", appId)
                 .setParameter("status", ProcessStatus.getRunningProcessStatuses()).getResultList();
@@ -89,7 +90,7 @@ public class ProcessEngineBean implements ProcessEngine, ProcessEngineAdmin {
     @Override
     @Transactional(Transactional.TxType.REQUIRED)
     public List<Process> findAllProcessesForApp(String appId) {
-        LOGGER.info("Finding all processes for application: " + appId);
+        LOGGER.log(Level.INFO, "Finding all processes for application: {0}", appId);
         return em.createNamedQuery("Process.findByApp", Process.class).setParameter("appId", appId).getResultList();
     }
 
@@ -97,7 +98,7 @@ public class ProcessEngineBean implements ProcessEngine, ProcessEngineAdmin {
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void assignTask(String processId, String taskId, String jobId) throws ProcessNotFoundException {
         Process instance = this.findById(processId);
-        LOGGER.info( "Process." + instance.getName() + "[" + instance.getId() + "]" + ".task[" + taskId + "] assigned");
+        LOGGER.log(Level.INFO,  "Process.{0}[{1}].task[{2}] assigned", new Object[]{instance.getName(), instance.getId(), taskId});
         instance.setRunningTaskJobId(jobId);
         instance.setStatus(ProcessStatus.TASK_ASSIGNED);
         instance.appendLog("Process." + instance.getName()).appendLog(".task[").appendLog(taskId).appendLog("] assigned to job: ").appendLog(jobId).appendLog("\n");
@@ -107,7 +108,7 @@ public class ProcessEngineBean implements ProcessEngine, ProcessEngineAdmin {
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void startTask(String processId, String taskId) throws ProcessNotFoundException {
         Process instance = this.findById(processId);
-        LOGGER.info( "Process." + instance.getName() + "[" + instance.getId() + "]" + ".task[" + taskId + "] running");
+        LOGGER.log(Level.INFO,  "Process.{0}[{1}].task[{2}] running", new Object[]{instance.getName(), instance.getId(), taskId});
         instance.setStatus(ProcessStatus.TASK_RUNNING);
         instance.appendLog("Process." + instance.getName()).appendLog(".task[").appendLog(taskId).appendLog("] starting").appendLog("\n");
     }
@@ -116,7 +117,7 @@ public class ProcessEngineBean implements ProcessEngine, ProcessEngineAdmin {
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void completeTask(String processId, String taskId, String taskLog, ProcessContext ctx) throws ProcessNotFoundException {
         Process instance = this.findById(processId);
-        LOGGER.info( "Process." + instance.getName() + "[" + instance.getId() + "]" + ".task[" + taskId + "] completed");
+        LOGGER.log(Level.INFO,  "Process.{0}[{1}].task[{2}] completed", new Object[]{instance.getName(), instance.getId(), taskId});
         instance.appendLog(taskLog);
         instance.setContext(ctx);
         instance.setStatus(ProcessStatus.PENDING);
@@ -127,32 +128,32 @@ public class ProcessEngineBean implements ProcessEngine, ProcessEngineAdmin {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void failTask(String processId, String taskId, String taskLog, TaskException wte, ProcessContext ctx) {
+    public void failTask(String processId, String taskId, String taskLog, Exception e, ProcessContext ctx) {
         Process instance = em.find(Process.class, processId);
         if (instance == null) {
-            LOGGER.severe("Unable to find process instance for id: " + processId + " while failing task");
+            LOGGER.log(Level.SEVERE, "Unable to find process instance for id: {0} while failing task", processId);
             return;
         }
-        LOGGER.info( "Process." + instance.getName() + "[" + instance.getId() + "]" + ".task[" + taskId + "] failed");
+        LOGGER.log(Level.INFO,  "Process.{0}[{1}].task[{2}] failed", new Object[]{instance.getName(), instance.getId(), taskId});
         instance.appendLog(taskLog);
         if (ctx != null) {
             instance.setContext(ctx);
         }
         instance.setStatus(ProcessStatus.FAILED);
-        instance.appendLog("Process." + instance.getName()).appendLog(".task[").appendLog(taskId).appendLog("] failed: ").appendLog(wte.getMessage()).appendLog("\n");
+        instance.appendLog("Process." + instance.getName()).appendLog(".task[").appendLog(taskId).appendLog("] failed: ").appendLog(e.getMessage()).appendLog("\n");
         instance.setEndDate(System.currentTimeMillis());
         //TODO If the process is configured to rollback on failure, schedule rollback tasks
     }
 
     private void scheduleNextTask(Process instance) {
         if (instance.hasNextTask()) {
-            LOGGER.info( "Process." + instance.getName() + "[" + instance.getId() + "]" + ".task[" + instance.getNextTaskId() + "]: scheduled");
+            LOGGER.log(Level.INFO,  "Process.{0}[{1}].task[{2}] scheduled", new Object[]{instance.getName(), instance.getId(), instance.getNextTaskId()});
             TaskRequest taskRequest = new TaskRequest(instance.getId(), instance.getName(), instance.getNextTaskId(), instance.getContext());
             taskEvent.fire(new TaskEvent(taskRequest));
-            LOGGER.info("Event fired for " + instance.getName() + "[" + instance.getId() + "]" + ".task[" + instance.getNextTaskId() + "], job will be enqueued after transaction commit");
+            LOGGER.log(Level.INFO,  "Process.{0}[{1}].task[{2}] event fired, job will be queued after transaction commit", new Object[]{instance.getName(), instance.getId(), instance.getNextTaskId()});
             instance.setStatus(ProcessStatus.PENDING);
         } else {
-            LOGGER.info( "Process." + instance.getName() + "[" + instance.getId() + "] completed");
+            LOGGER.log(Level.INFO,  "Process.{0}[{1}] completed", new Object[]{instance.getName(), instance.getId()});
             instance.setEndDate(System.currentTimeMillis());
             instance.setStatus(ProcessStatus.COMPLETED);
         }

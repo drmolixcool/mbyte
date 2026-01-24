@@ -32,7 +32,7 @@
       "creationInProgress": "Creation in progress…"
     },
     "storeDetail": {
-      "title": "Store Details",
+      "title": "Store",
       "id": "ID",
       "name": "Name",
       "type": "Type",
@@ -41,11 +41,25 @@
       "createdSince": "Created since",
       "start": "Start",
       "refresh": "Refresh",
-      "starting": "Starting...",
-      "running": "Running..."
+      "starting": "Starting…",
+      "running": "Running…",
+      "loadingCommands": "Loading commands…",
+      "noCommands": "No available commands",
+      "availableCommands": "Available commands"
     },
-    "storeCreated": "Store created successfully",
+    "storeCreated": "Store created",
     "storeCreationFailed": "Failed to create store"
+  },
+  "commands": {
+    "START": {
+      "label": "Start",
+      "description": "Start the application",
+      "tooltip": "Start the store"
+    },
+    "STOP": {
+      "label": "Stop",
+      "tooltip": "Stop the store"
+    }
   },
   "i18n": {
     "switchToFrench": "Switch language to French",

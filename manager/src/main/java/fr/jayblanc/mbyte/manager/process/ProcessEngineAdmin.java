@@ -29,6 +29,6 @@ public interface ProcessEngineAdmin {
 
     void completeTask(String processId, String taskId, String taskLog, ProcessContext ctx) throws ProcessNotFoundException;
 
-    void failTask(String processId, String taskId, String taskLog, TaskException wte, ProcessContext ctx);
+    void failTask(String processId, String taskId, String taskLog, Exception wte, ProcessContext ctx);
 
 }

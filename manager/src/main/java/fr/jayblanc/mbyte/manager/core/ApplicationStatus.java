@@ -20,5 +20,5 @@ package fr.jayblanc.mbyte.manager.core;
  * @author Jerome Blanchard
  */
 public enum ApplicationStatus {
-    CREATED, STARTING, STARTED, AVAILABLE, LOST, ERROR
+    CREATED, STARTING, STARTED, AVAILABLE, LOST, ERROR, STOPPING, STOPPED
 }

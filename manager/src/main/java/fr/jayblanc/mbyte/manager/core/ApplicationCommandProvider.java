@@ -38,13 +38,13 @@ public class ApplicationCommandProvider {
         return commands.stream().map(ApplicationCommand::getName).toList();
     }
 
-    public List<String> listCommandsForAppType(String type) {
-        LOGGER.log(Level.FINE, "List available application commands for type: " + type);
-        return commands.stream().filter(c -> c.forAppType().equals(type)).map(ApplicationCommand::getName).toList();
+    public List<ApplicationCommand> listCommandsForAppType(String type) {
+        LOGGER.log(Level.FINE, "List available application commands for type: {0}", type);
+        return commands.stream().filter(c -> c.forAppType().equals(type)).toList();
     }
 
     public ApplicationCommand findCommand(String type, String name) throws ApplicationCommandNotFoundException {
-        LOGGER.log(Level.FINE, "Searching application command for name: " + name);
+        LOGGER.log(Level.FINE, "Searching application command for name: {0}", name);
         return commands.stream()
                 .filter(c -> c.forAppType().equals(type) && c.getName().equals(name))
                 .findFirst()

@@ -16,6 +16,7 @@
  */
 package fr.jayblanc.mbyte.manager.api.resources;
 
+import fr.jayblanc.mbyte.manager.api.dto.CommandDescriptor;
 import fr.jayblanc.mbyte.manager.core.*;
 import fr.jayblanc.mbyte.manager.core.entity.Application;
 import fr.jayblanc.mbyte.manager.process.ProcessAlreadyRunningException;
@@ -68,12 +69,12 @@ public class AppsResource {
     }
 
     @GET
-    @Path("{id}/procs-names")
+    @Path("{id}/commands")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<String> listProcsNamesForApp(@PathParam("id") String id) throws ApplicationNotFoundException, AccessDeniedException {
-        LOGGER.log(Level.INFO, "GET /api/apps/{0}/procs-names", id);
+    public List<CommandDescriptor> listCommands(@PathParam("id") String id) throws ApplicationNotFoundException, AccessDeniedException {
+        LOGGER.log(Level.INFO, "GET /api/apps/{0}/commands", id);
         Application app = core.getApp(id);
-        return commandProvider.listCommandsForAppType(app.getType());
+        return commandProvider.listCommandsForAppType(app.getType()).stream().map(CommandDescriptor::fromApplicationCommand).toList();
     }
 
     @POST
@@ -107,7 +108,7 @@ public class AppsResource {
             throws ApplicationNotFoundException, AccessDeniedException, ProcessNotFoundException {
         LOGGER.log(Level.INFO, "GET /api/apps/{0}/procs/{1}", new Object[] { id, pid });
         Application app = core.getApp(id);
-        Process proc = engine.getProcess(id);
+        Process proc = engine.getProcess(pid);
         if ( !proc.getAppId().equals(app.getId()) ) {
             throw new ProcessNotFoundException("Process with id: " + pid + " does not exists for application with id: " + id);
         }

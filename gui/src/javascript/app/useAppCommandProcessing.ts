@@ -46,31 +46,70 @@ export function useAppCommandProcessing(appId: string): UseAppCommandResult {
   const [currentProcess, setCurrentProcess] = useState<Process | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const pollTimer = useRef<number | null>(null)
+  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const stopPolling = useCallback(() => {
     if (pollTimer.current != null) {
-      window.clearTimeout(pollTimer.current)
+      globalThis.clearTimeout(pollTimer.current as unknown as number)
       pollTimer.current = null
     }
   }, [])
 
-  const pollProcess = useCallback(async () => {
-    if (!procId) return
+  const pollProcess = useCallback(async (procIdArg?: string) => {
+    const id = procIdArg ?? procId
+    if (!id) return
     try {
-      const proc = await managerApiRef.current.getAppProc(appId, procId)
+      const proc = await managerApiRef.current.getAppProc(appId, id)
+      // debug log to help trace status transitions
+      // eslint-disable-next-line no-console
+      console.debug('pollProcess:', { appId, procId: id, status: proc?.status })
       setCurrentProcess(proc)
 
-      if (proc.status === 'TASK_RUNNING') {
+      // Continue polling while the process is not in a terminal state
+      const terminalStates = ['COMPLETED', 'FAILED', 'ROLLED_BACK']
+      if (proc.status && !terminalStates.includes(proc.status)) {
         setPhase('polling')
-        pollTimer.current = window.setTimeout(() => {
-          void pollProcess()
+        // eslint-disable-next-line no-console
+        console.debug('pollProcess: scheduling next poll for', id)
+        pollTimer.current = globalThis.setTimeout(() => {
+          void pollProcess(id)
         }, 2000)
       } else {
+        // terminal state reached; attempt one extra fetch to get the final state or detect removal
+        try {
+          const finalProc = await managerApiRef.current.getAppProc(appId, id)
+          // eslint-disable-next-line no-console
+          console.debug('pollProcess: final fetch result', { appId, procId: id, status: finalProc?.status })
+          setCurrentProcess(finalProc)
+        } catch (e: unknown) {
+          if (e instanceof Error && e.message.startsWith('HTTP 404')) {
+            // process removed, clear currentProcess
+            // eslint-disable-next-line no-console
+            console.debug('pollProcess: final fetch returned 404, clearing currentProcess for', id)
+            setCurrentProcess(null)
+          } else {
+            // keep the previously fetched proc if final fetch failed with other errors
+            // eslint-disable-next-line no-console
+            console.debug('pollProcess: final fetch failed for', id, e)
+          }
+        }
         setPhase('completed')
+        // eslint-disable-next-line no-console
+        console.debug('pollProcess: terminal status reached for', id, proc.status)
         stopPolling()
       }
     } catch (e: unknown) {
+      // If backend removed the process (e.g. 404), consider it completed and stop polling
+      if (e instanceof Error && e.message.startsWith('HTTP 404')) {
+        // eslint-disable-next-line no-console
+        console.debug('pollProcess: process not found, treating as completed', id)
+        setPhase('completed')
+        setCurrentProcess(null)
+        stopPolling()
+        return
+      }
+      // eslint-disable-next-line no-console
+      console.debug('pollProcess: error for', id, e)
       setPhase('error')
       setError(e instanceof Error ? e.message : String(e))
       stopPolling()
@@ -89,15 +128,20 @@ export function useAppCommandProcessing(appId: string): UseAppCommandResult {
           const activeProc = processes[0] // assume one active at a time
           setProcId(activeProc.id)
           setCurrentProcess(activeProc)
-          if (activeProc.status === 'TASK_RUNNING') {
+          // If the active process is not in a terminal state, start polling
+          const terminalStates = ['COMPLETED', 'FAILED', 'ROLLED_BACK']
+          if (activeProc.status && !terminalStates.includes(activeProc.status)) {
             setPhase('polling')
-            await pollProcess()
+            await pollProcess(activeProc.id)
           } else {
             setPhase('completed')
           }
         }
       } catch (e: unknown) {
-        // ignore errors on load
+        // log debug instead of silently ignoring to make the failure visible for debugging
+        // but don't surface the error to UI on initial load
+        // eslint-disable-next-line no-console
+        console.debug('useAppCommandProcessing: initial load error', e)
       }
     })()
     return () => {
@@ -113,7 +157,7 @@ export function useAppCommandProcessing(appId: string): UseAppCommandResult {
       const pid = await managerApiRef.current.runAppCommand(appId, command)
       setProcId(pid)
       setPhase('polling')
-      await pollProcess()
+      await pollProcess(pid)
     } catch (e: unknown) {
       setPhase('error')
       setError(e instanceof Error ? e.message : String(e))
@@ -122,7 +166,7 @@ export function useAppCommandProcessing(appId: string): UseAppCommandResult {
 
   const refresh = useCallback(async () => {
     if (procId) {
-      await pollProcess()
+      await pollProcess(procId)
     }
   }, [pollProcess, procId])
 

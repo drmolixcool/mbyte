@@ -1,78 +1,257 @@
-import {
-  CCard,
-  CCardBody,
-  CCardHeader,
-  CCol,
-  CContainer,
-  CRow,
-  CSpinner,
-} from '@coreui/react'
-import { useMemo } from 'react'
-import { useParams } from 'react-router-dom'
-import { useProfile } from '../auth/useProfile'
-import { computeStoreBaseUrl } from '../api/storeApi'
+import { useEffect, useState, useRef } from 'react'
+import { CContainer } from '@coreui/react'
+import { NavigationBar } from '../components/store/NavigationBar'
+import { BrowserArea } from '../components/store/BrowserArea'
+import { InfoPanel } from '../components/store/InfoPanel'
+import Node from '../api/entities/Node'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useAccessToken } from '../auth/useAccessToken'
+import { useStoreApi } from '../api/useStoreApi'
+import { useManagerStatus } from '../auth/useManagerStatus'
+import { apiConfig } from '../api/apiConfig'
 
-function parseStoreIndex(raw: string | undefined): number {
-  if (!raw) return 0
-  const n = Number.parseInt(raw, 10)
-  return Number.isFinite(n) && n >= 0 ? n : 0
-}
+type BreadcrumbItem = { id?: string, name: string }
 
 export function StorePage() {
-  const { index } = useParams()
-  const storeIndex = parseStoreIndex(index)
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
+  const [detailVisible, setDetailVisible] = useState(true)
+  const [currentPath, setCurrentPath] = useState<BreadcrumbItem[]>([{ id: undefined, name: '/' }])
+  const [nodes, setNodes] = useState<Node[]>([])
+  const [selected, setSelected] = useState<Node | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  const { profile, isLoading: profileLoading, error: profileError } = useProfile()
+  const params = useParams()
+  const navigate = useNavigate()
 
-  const storeBaseUrl = useMemo(() => {
-    const username = profile?.username
-    if (!username) return null
+  const tokenProvider = useAccessToken()
+  const { apps } = useManagerStatus()
 
-    // For now we compute from username + STORES_DOMAIN.
-    // Later, when multiple stores exist, storeIndex can map to a specific store.
-    return computeStoreBaseUrl({ username, index: storeIndex })
-  }, [profile?.username, storeIndex])
+  // compute per-user store base URL from the DOCKER_STORE app name when present
+  const userStoreApp = apps.find((a) => a?.type === 'DOCKER_STORE')
+  const storeBaseUrl = userStoreApp?.name ? `${apiConfig.storesScheme}://${userStoreApp.name}.${apiConfig.storesDomain}/` : undefined
+
+  const storeApi = useStoreApi(tokenProvider, storeBaseUrl)
+
+  const notifiedRef = useRef(false)
+
+  // If the store API is not configured, show an informational message and avoid any API calls.
+  useEffect(() => {
+    if (!storeApi.isConfigured && !notifiedRef.current) {
+      notifiedRef.current = true
+      globalThis.dispatchEvent(new CustomEvent('mbyte-toast', { detail: { message: 'Store API not configured for this environment. Set VITE_API_STORE_BASE_URL or provide storeLocator.' } }))
+    }
+  }, [storeApi.isConfigured])
+
+  // Keep a ref to the current storeApi and a lastRun key to avoid repeating the same work
+  const storeApiRef = useRef(storeApi)
+  useEffect(() => { storeApiRef.current = storeApi }, [storeApi])
+  const lastRunRef = useRef<string | null>(null)
+
+  // react to route param (folder/file id) — single effect, deduped by key including storeBaseUrl
+  useEffect(() => {
+    const base = storeBaseUrl ?? ''
+    if (!base) return
+    if (!storeApiRef.current.isConfigured) return
+    const raw = params['*'] || undefined
+    const key = `${base}|${raw ?? ''}`
+    if (lastRunRef.current === key) return
+    lastRunRef.current = key
+
+    let cancelled = false
+    const run = async () => {
+      setLoading(true)
+      try {
+        if (!raw) {
+          const root = await storeApiRef.current.getRoot()
+          const coll = await storeApiRef.current.listChildren(root.id, 200, 0)
+          if (cancelled) return
+          // avoid setting identical nodes to prevent re-renders
+          if (JSON.stringify(coll.values.map(n => n.id)) !== JSON.stringify(nodes.map(n => n.id))) {
+            setNodes(coll.values)
+          }
+          try {
+            const path = await storeApiRef.current.getPath(root.id)
+            if (cancelled) return
+            const newPath = [{ id: undefined, name: '/' }, ...path.map(p => ({ id: p.id, name: p.name }))]
+            if (JSON.stringify(newPath) !== JSON.stringify(currentPath)) setCurrentPath(newPath)
+          } catch (e) {
+            // eslint-disable-next-line no-console
+            console.debug('Failed to fetch path for root, hiding breadcrumb', e)
+            if (!cancelled && currentPath.length !== 0) setCurrentPath([])
+          }
+          if (!cancelled && selected !== null) setSelected(null)
+          return
+        }
+
+        try {
+          const node = await storeApiRef.current.getNode(raw)
+          if (node.isFolder) {
+            const coll = await storeApiRef.current.listChildren(node.id, 200, 0)
+            if (cancelled) return
+            if (JSON.stringify(coll.values.map(n => n.id)) !== JSON.stringify(nodes.map(n => n.id))) {
+              setNodes(coll.values)
+            }
+            try {
+              const path = await storeApiRef.current.getPath(node.id)
+              if (cancelled) return
+              const newPath = [{ id: undefined, name: '/' }, ...path.map(p => ({ id: p.id, name: p.name }))]
+              if (JSON.stringify(newPath) !== JSON.stringify(currentPath)) setCurrentPath(newPath)
+            } catch (e) {
+              // eslint-disable-next-line no-console
+              console.debug('Failed to fetch path for folder, hiding breadcrumb', e)
+              if (!cancelled && currentPath.length !== 0) setCurrentPath([])
+            }
+            if (!cancelled && selected !== null) setSelected(null)
+            return
+          }
+
+          if (node.isFile) {
+            const root = await storeApiRef.current.getRoot()
+            const coll = await storeApiRef.current.listChildren(root.id, 200, 0)
+            if (cancelled) return
+            if (JSON.stringify(coll.values.map(n => n.id)) !== JSON.stringify(nodes.map(n => n.id))) {
+              setNodes(coll.values)
+            }
+            try {
+              const path = await storeApiRef.current.getPath(node.id)
+              if (cancelled) return
+              const newPath = [{ id: undefined, name: '/' }, ...path.map(p => ({ id: p.id, name: p.name }))]
+              if (JSON.stringify(newPath) !== JSON.stringify(currentPath)) setCurrentPath(newPath)
+            } catch (e) {
+              // eslint-disable-next-line no-console
+              console.debug('Failed to fetch path for file, hiding breadcrumb', e)
+              if (!cancelled && currentPath.length !== 0) setCurrentPath([])
+            }
+            if (!cancelled && (selected?.id ?? null) !== node.id) setSelected(node)
+            return
+          }
+
+          // fallback: load root
+          const root = await storeApiRef.current.getRoot()
+          const coll = await storeApiRef.current.listChildren(root.id, 200, 0)
+          if (cancelled) return
+          if (JSON.stringify(coll.values.map(n => n.id)) !== JSON.stringify(nodes.map(n => n.id))) {
+            setNodes(coll.values)
+          }
+          if (!cancelled && currentPath.length !== 0) setCurrentPath([])
+          if (!cancelled && selected !== null) setSelected(null)
+          return
+        } catch (e) {
+          // can't resolve id: fallback to root
+          // eslint-disable-next-line no-console
+          console.debug('Failed to resolve node from URL, fallback to root', e)
+          const root = await storeApiRef.current.getRoot()
+          const coll = await storeApiRef.current.listChildren(root.id, 200, 0)
+          if (cancelled) return
+          if (JSON.stringify(coll.values.map(n => n.id)) !== JSON.stringify(nodes.map(n => n.id))) {
+            setNodes(coll.values)
+          }
+          if (!cancelled && currentPath.length !== 0) setCurrentPath([])
+          if (!cancelled && selected !== null) setSelected(null)
+          return
+        }
+      } catch (err) {
+        // Errors are reported by useStoreApi via toaster; fallback to empty state
+        // eslint-disable-next-line no-console
+        console.error('Failed during store load', err)
+        if (!cancelled) {
+          setNodes([])
+          setSelected(null)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void run()
+    return () => { cancelled = true }
+  }, [params, storeBaseUrl])
+
+  const handleOpenFolder = (folderId?: string) => {
+    if (!folderId) return
+    // update URL to point to this folder id
+    navigate(`/s/0/${folderId}`)
+  }
+
+  const handleView = async (n?: Node | null) => {
+    if (!n) return
+    if (n.isFolder) {
+      handleOpenFolder(n.id)
+      return
+    }
+    // file: open preview in new tab
+    if (!storeApi.isConfigured) return
+    try {
+      const res = await storeApi.content(n.id, false)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setSelected(n)
+    } catch (err) {
+      console.error('Preview failed', err)
+      setSelected(n)
+    }
+  }
+
+  const handleAction = async (action: string, f: Node) => {
+    if (!storeApi.isConfigured) return
+    if (action === 'download') {
+      try {
+        const res = await storeApi.content(f.id, true)
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = f.name ?? 'download'
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(url)
+      } catch (err) {
+        console.error('Download failed', err)
+      }
+    } else if (action === 'info') {
+      setSelected(f)
+      setDetailVisible(true)
+    }
+  }
+
+  if (!storeApi.isConfigured) {
+    return (
+      <CContainer fluid className="p-0 d-flex align-items-center justify-content-center" style={{ height: '100%' }}>
+        <div style={{ maxWidth: 800, padding: 24 }}>
+          <h4>Store not configured</h4>
+          <p className="text-muted">The store API base URL is not configured for this environment. For local development you can set <code>VITE_API_STORE_BASE_URL</code> or provide a <code>storeLocator</code> to the API provider.</p>
+        </div>
+      </CContainer>
+    )
+  }
 
   return (
-    <CContainer fluid className="py-3">
-      <CRow className="g-3">
-        <CCol xs={12}>
-          <CCard>
-            <CCardHeader>Store</CCardHeader>
-            <CCardBody>
-              {profileLoading && (
-                <div className="d-flex align-items-center gap-2">
-                  <CSpinner size="sm" />
-                  <span>Loading profile…</span>
-                </div>
-              )}
+    <CContainer fluid className="p-0" style={{ height: '100%' }}>
+      <NavigationBar
+        breadcrumb={currentPath}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        detailVisible={detailVisible}
+        toggleDetail={() => setDetailVisible((v) => !v)}
+        setCurrentPath={setCurrentPath}
+        onNavigate={(folderId) => handleOpenFolder(folderId)}
+      />
 
-              {profileError && <p className="text-danger">Profile error: {profileError}</p>}
+      <div className="d-flex" style={{ height: 'calc(100% - 56px)', overflow: 'hidden' }}>
+        <div className="flex-grow-1" style={{ overflow: 'auto', minWidth: 0, position: 'relative' }}>
+          {loading && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, background: 'rgba(255,255,255,0.6)' }}>
+              <div className="spinner-border visually-hidden-focusable" aria-hidden="true" />
+            </div>
+          )}
 
-              {!profileLoading && !profileError && !profile?.username && (
-                <p className="text-warning">
-                  Profile loaded but username is missing, cannot compute store FQDN.
-                </p>
-              )}
+          <BrowserArea files={nodes} viewMode={viewMode} onSelect={(n) => handleView(n)} onOpenFolder={(id) => handleOpenFolder(id)} onAction={(a, f) => handleAction(a, f)} />
+        </div>
 
-              {storeBaseUrl && (
-                <div>
-                  <div>
-                    <strong>Store base URL:</strong> {storeBaseUrl}
-                  </div>
-                  <div className="text-body-secondary">
-                    Route index: <code>{storeIndex}</code>
-                  </div>
-                </div>
-              )}
-
-              {!storeBaseUrl && !profileLoading && !profileError && (
-                <p className="text-body-secondary">No store URL computed yet.</p>
-              )}
-            </CCardBody>
-          </CCard>
-        </CCol>
-      </CRow>
+        {detailVisible && <InfoPanel selected={selected ?? null} />}
+      </div>
     </CContainer>
   )
 }

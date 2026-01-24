@@ -1,21 +1,58 @@
-import { CButton, CCard, CCardBody, CCardHeader, CBadge, CSpinner } from '@coreui/react'
+import { CButton, CCard, CCardBody, CCardHeader, CBadge, CSpinner, CTooltip } from '@coreui/react'
 import { CIcon } from '@coreui/icons-react'
 import { cilReload } from '@coreui/icons'
 import { useTranslation } from 'react-i18next'
+import { useEffect, useState } from 'react'
 import type { Application } from '../../api/entities/Application'
+import type { CommandDescriptor } from '../../api/entities/CommandDescriptor'
 import { formatTimeAgo } from '../../utils/time'
 import { useAppCommandProcessing } from '../../app/useAppCommandProcessing'
+import { useManagerApi } from '../../api/ManagerApiProvider'
 
-export type DetailStoreCardProps = {
+export type DetailStoreCardProps = Readonly<{
   app: Application
   onRefresh: () => void
-}
+}>
 
 export function DetailStoreCard({ app, onRefresh }: DetailStoreCardProps) {
   const { t } = useTranslation()
   const commandProcessing = useAppCommandProcessing(app.id)
+  const managerApi = useManagerApi()
 
-  const canStart = app.status === 'CREATED' || app.status === 'ERROR'
+  const [commands, setCommands] = useState<CommandDescriptor[] | null>(null)
+  const [commandsError, setCommandsError] = useState<string | null>(null)
+  const [commandsLoading, setCommandsLoading] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setCommandsLoading(true)
+    setCommandsError(null)
+    managerApi
+      .listAppCommands(app.id)
+      .then((res) => {
+        if (cancelled) return
+        setCommands(res)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        console.error('Failed to load commands:', err)
+        setCommandsError(err instanceof Error ? err.message : String(err))
+      })
+      .finally(() => {
+        if (cancelled) return
+        setCommandsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [app.id, managerApi])
+
+  useEffect(() => {
+    if (commandProcessing.phase === 'completed') {
+      // refresh parent state (app status) when a process completes
+      onRefresh()
+    }
+  }, [commandProcessing.phase, onRefresh])
 
   const getStatusColor = (status: string | undefined) => {
     switch (status) {
@@ -36,8 +73,8 @@ export function DetailStoreCard({ app, onRefresh }: DetailStoreCardProps) {
 
   const createdSince = app.creationDate ? formatTimeAgo(new Date(app.creationDate)) : t('common.unknown')
 
-  const handleStart = () => {
-    void commandProcessing.runCommand(app.id, 'START')
+  const handleCommand = (commandName: string) => {
+    void commandProcessing.runCommand(app.id, commandName)
   }
 
   return (
@@ -94,12 +131,63 @@ export function DetailStoreCard({ app, onRefresh }: DetailStoreCardProps) {
           </div>
         )}
 
-        <div className="d-flex gap-2">
-          {canStart && (commandProcessing.phase === 'idle' || commandProcessing.phase === 'error') && (
-            <CButton color="success" onClick={handleStart}>
-              {t('dashboard.storeDetail.start')}
-            </CButton>
+        <div>
+          {commandsLoading && (
+            <div className="d-flex align-items-center gap-2">
+              <CSpinner size="sm" />
+              <span>{t('dashboard.storeDetail.loadingCommands')}</span>
+            </div>
           )}
+
+          {commandsError && (
+            <div className="text-danger">{commandsError}</div>
+          )}
+
+          {commands?.length === 0 && (
+            <div className="text-muted small">{t('dashboard.storeDetail.noCommands')}</div>
+          )}
+
+          {commands?.length ? (
+            <div className="d-flex flex-wrap gap-2">
+              {commands.map((cmd) => {
+                const appStatus = app.status ?? ''
+                const allowedForStatus = !cmd.appStatus || cmd.appStatus.includes(appStatus)
+                const disabled = commandProcessing.phase !== 'idle' || !allowedForStatus
+                const btnStyle = allowedForStatus ? undefined : { opacity: 0.5 }
+                return (
+                  cmd.description ? (
+                    <CTooltip key={cmd.name} content={t(`commands.${cmd.name}.description`)}>
+                      <span>
+                        <CButton
+                          color="outline-primary"
+                          size="sm"
+                          onClick={() => handleCommand(cmd.name)}
+                          disabled={disabled}
+                          aria-disabled={disabled}
+                          style={btnStyle}
+                        >
+                          {t(`commands.${cmd.name}.label`)}
+                        </CButton>
+                      </span>
+                    </CTooltip>
+                  ) : (
+                    <CButton
+                      key={cmd.name}
+                      color="outline-primary"
+                      size="sm"
+                      title={t(`commands.${cmd.name}.description`)}
+                      onClick={() => handleCommand(cmd.name)}
+                      disabled={disabled}
+                      aria-disabled={disabled}
+                      style={btnStyle}
+                    >
+                      {t(`commands.${cmd.name}.label`)}
+                    </CButton>
+                  )
+                )
+              })}
+            </div>
+          ) : null}
         </div>
       </CCardBody>
     </CCard>

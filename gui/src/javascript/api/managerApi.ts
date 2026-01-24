@@ -21,6 +21,7 @@ import type {Profile} from './entities/Profile'
 import type {Process} from './entities/Process'
 import type {ManagerStatus} from './entities/ManagerStatus'
 import type {Application} from './entities/Application'
+import type { CommandDescriptor } from './entities/CommandDescriptor'
 
 async function readJsonOrThrow(res: Response): Promise<unknown> {
   const text = await res.text()
@@ -108,11 +109,11 @@ export function createManagerApi(tokenProvider: TokenProvider) {
         return (await readJsonOrThrow(res)) as Process[]
     },
 
-    /** Returns available command names for an app (GET /api/apps/{appId}/procs-names). */
-    async listAppCommands(appId: string): Promise<string[]> {
+    /** Returns available command names for an app (GET /api/apps/{appId}/commands). */
+    async listAppCommands(appId: string): Promise<CommandDescriptor[]> {
       const base = requireBaseUrl()
-      const res = await fetchWithAuth(tokenProvider, `/api/apps/${encodeURIComponent(appId)}/procs-names`, { method: 'GET' }, base)
-      return (await readJsonOrThrow(res)) as string[]
+      const res = await fetchWithAuth(tokenProvider, `/api/apps/${encodeURIComponent(appId)}/commands`, { method: 'GET' }, base)
+      return (await readJsonOrThrow(res)) as CommandDescriptor[]
     },
 
     /** Runs a command on an app (POST /api/apps/{appId}/procs). Returns process id. */

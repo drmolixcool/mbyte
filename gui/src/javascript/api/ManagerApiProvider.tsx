@@ -5,6 +5,7 @@ import type { TokenProvider } from './fetchWithAuth'
 import { useAccessToken } from '../auth/useAccessToken'
 import type { Application } from './entities/Application'
 import type {Process} from "./entities/Process.ts";
+import type { CommandDescriptor } from './entities/CommandDescriptor'
 
 export type ManagerApi = {
   getHealth(): Promise<unknown>
@@ -14,7 +15,7 @@ export type ManagerApi = {
   getApp(appId: string): Promise<Application>
   createApp(type: string, name: string): Promise<string>
   getAppProcs(appId: string, active: boolean): Promise<Process[]>
-  listAppCommands(appId: string): Promise<string[]>
+  listAppCommands(appId: string): Promise<CommandDescriptor[]>
   runAppCommand(appId: string, commandName: string): Promise<string>
   getAppProc(appId: string, procId: string): Promise<Process>
   getStatus(): Promise<import('./entities/ManagerStatus').ManagerStatus>

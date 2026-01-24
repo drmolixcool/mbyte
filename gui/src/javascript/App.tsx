@@ -1,4 +1,4 @@
-import {useState} from 'react'
+import {useState, useEffect} from 'react'
 import {useTranslation} from 'react-i18next'
 import {Navigate, Route, Routes} from 'react-router-dom'
 import './App.css'
@@ -8,7 +8,6 @@ import {NotFoundPage} from './pages/NotFoundPage'
 import {StorePage} from './pages/StorePage'
 import {Header, SideBar} from './components'
 import {CToast, CToastBody, CToastHeader,} from '@coreui/react'
-import {RequireStore} from "./auth/RequireStore.tsx";
 
 export default function App() {
   const { t } = useTranslation()
@@ -20,6 +19,20 @@ export default function App() {
     setToastMessage(message)
     setShowToast(true)
   }
+
+  useEffect(() => {
+    const onGlobalToast = (ev: Event) => {
+      // Expect a CustomEvent with detail { message }
+      const ce = ev as CustomEvent<{ message?: string }>
+      const msg = ce?.detail?.message ?? String((ev as any).detail ?? '')
+      if (msg) {
+        setToastMessage(String(msg))
+        setShowToast(true)
+      }
+    }
+    globalThis.addEventListener('mbyte-toast', onGlobalToast as EventListener)
+    return () => globalThis.removeEventListener('mbyte-toast', onGlobalToast as EventListener)
+  }, [])
 
   return (
     <RequireAuth>
@@ -38,9 +51,7 @@ export default function App() {
                   <DashboardPage onNotify={handleNotify} />}
               />
               <Route path="/s/:index/" element={
-                  <RequireStore>
-                    <StorePage />
-                  </RequireStore>
+                  <StorePage />
                 }
               />
               <Route path="*" element={<NotFoundPage />} />

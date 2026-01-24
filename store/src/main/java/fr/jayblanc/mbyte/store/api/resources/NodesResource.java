@@ -83,7 +83,7 @@ public class NodesResource {
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance childrenView(@PathParam("id") final String id, @QueryParam("limit") @DefaultValue("20") int limit, @QueryParam("offset") @DefaultValue("0") int offset) throws NodeNotFoundException,
             NodeTypeException {
-        LOGGER.log(Level.INFO, "GET /api/nodes/" + id + " (html)");
+        LOGGER.log(Level.INFO, "GET /api/nodes/{0} (html)", id);
         Node node = service.get(id);
         List<Node> nodes = service.list(node.getId());
         if (node.getType().equals(Node.Type.TREE)) {
@@ -100,9 +100,17 @@ public class NodesResource {
     @Transactional(Transactional.TxType.REQUIRED)
     @Produces({MediaType.APPLICATION_JSON})
     public Node get(@PathParam("id") final String id) throws NodeNotFoundException {
-        LOGGER.log(Level.INFO, "GET /api/nodes/" + id);
-        Node node = service.get(id);
-        return node;
+        LOGGER.log(Level.INFO, "GET /api/nodes/{0}", id);
+        return service.get(id);
+    }
+
+    @GET
+    @Path("{id}/path")
+    @Transactional(Transactional.TxType.REQUIRED)
+    @Produces({MediaType.APPLICATION_JSON})
+    public List<Node> path(@PathParam("id") final String id) throws NodeNotFoundException {
+        LOGGER.log(Level.INFO, "GET /api/nodes/{0}/path", id);
+        return service.path(id);
     }
 
     @GET
@@ -111,7 +119,7 @@ public class NodesResource {
     @Produces(MediaType.WILDCARD)
     public Response content(@PathParam("id") final String id, @QueryParam("download") @DefaultValue("false") final boolean download) throws NodeNotFoundException, NodeTypeException,
             DataNotFoundException, DataStoreException {
-        LOGGER.log(Level.INFO, "GET /api/nodes/" + id + "/content");
+        LOGGER.log(Level.INFO, "GET /api/nodes/{0}/content", id);
         Node node = service.get(id);
         if (node.getType().equals(Node.Type.BLOB)) {
             return Response.ok(service.getContent(id))
@@ -128,13 +136,13 @@ public class NodesResource {
     @Transactional(Transactional.TxType.REQUIRED)
     @Produces(MediaType.APPLICATION_JSON)
     public Response children(@PathParam("id") final String id, @QueryParam("limit") @DefaultValue("20") int limit, @QueryParam("offset") @DefaultValue("0") int offset) throws NodeNotFoundException,
-            NodeTypeException, DataNotFoundException, DataStoreException {
-        LOGGER.log(Level.INFO, "GET /api/nodes/" + id + "/children");
+            NodeTypeException {
+        LOGGER.log(Level.INFO, "GET /api/nodes/{0}/children", id);
         Node node = service.get(id);
         if (node.getType().equals(Node.Type.TREE)) {
             CollectionDto<NodeDto> dto = new CollectionDto<>(limit, offset);
             List<Node> nodes = service.list(node.getId());
-            dto.setValues(nodes.stream().skip(offset).limit(limit).map(NodeDto::fromNode).collect(Collectors.toList()));
+            dto.setValues(nodes.stream().skip(offset).limit(limit).map(NodeDto::fromNode).toList());
             dto.setSize(nodes.size());
             dto.setLimit(limit);
             dto.setOffset(offset);
@@ -151,7 +159,7 @@ public class NodesResource {
     @Consumes({MediaType.APPLICATION_JSON, MediaType.MULTIPART_FORM_DATA})
     public Response create(@PathParam("id") final String id, @Valid @MultipartForm NodeCreateDto dto, @Context UriInfo info) throws NodeNotFoundException, NodeTypeException,
             NodeAlreadyExistsException, DataNotFoundException, DataStoreException, NodePersistenceException, NotificationServiceException {
-        LOGGER.log(Level.INFO, "POST /api/nodes/" + id);
+        LOGGER.log(Level.INFO, "POST /api/nodes/{0}", id);
         String nid;
         if (dto.getContent() != null) {
             nid = service.add(id, dto.getName(), new ByteArrayInputStream(dto.getContent()));
@@ -170,7 +178,7 @@ public class NodesResource {
     @Produces(MediaType.TEXT_HTML)
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response createView(@PathParam("id") final String id, @Valid @MultipartForm NodeCreateDto dto, @Context UriInfo info) throws NodeNotFoundException, NodeTypeException, NodeAlreadyExistsException, DataNotFoundException, DataStoreException, NodePersistenceException, NotificationServiceException {
-        LOGGER.log(Level.INFO, "POST /api/nodes/" + id + " (html)");
+        LOGGER.log(Level.INFO, "POST /api/nodes/{0} (html)", id);
         if (dto.getData() != null) {
             service.add(id, dto.getName(), dto.getData());
         } else {
@@ -187,7 +195,7 @@ public class NodesResource {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response update(@PathParam("id") final String id, @PathParam("name") String name, @FormParam("data") InputStream data) throws
             NodeNotEmptyException, NodeNotFoundException, NodeTypeException, NodeAlreadyExistsException, DataStoreException, DataNotFoundException, NodePersistenceException, NotificationServiceException {
-        LOGGER.log(Level.INFO, "PUT /api/nodes/" + id + "/" + name);
+        LOGGER.log(Level.INFO, "PUT /api/nodes/{0}/{1}", new Object[]{id, name});
         service.remove(id, name);
         service.add(id, name, data);
         return Response.noContent().build();
@@ -198,7 +206,7 @@ public class NodesResource {
     @Transactional(Transactional.TxType.REQUIRED)
     @Produces(MediaType.APPLICATION_JSON)
     public Response delete(@PathParam("id") final String id, @PathParam("name") final String name) throws NodeNotEmptyException, NodeNotFoundException, NodeTypeException, DataStoreException, NodePersistenceException, NotificationServiceException {
-        LOGGER.log(Level.INFO, "DELETE /api/nodes/" + name);
+        LOGGER.log(Level.INFO, "DELETE /api/nodes/{0}", name);
         service.remove(id, name);
         return Response.noContent().build();
     }
