@@ -21,6 +21,15 @@ import java.util.UUID;
 
 public class Event {
 
+    public static final String TYPE_APP_CREATED = "app.created";
+    public static final String TYPE_APP_DELETED = "app.deleted";
+    public static final String TYPE_APP_STATUS_UPDATED = "app.status.updated";
+    public static final String TYPE_APP_COMMAND_RUN = "app.command.run";
+    public static final String TYPE_ENV_UPDATED = "env.updated";
+    public static final String TYPE_PROCESS_STARTED = "process.started";
+    public static final String TYPE_PROCESS_COMPLETED = "process.completed";
+    public static final String TYPE_PROCESS_FAILED = "process.failed";
+
     private String id;
     private long timestamp;
     private String type;

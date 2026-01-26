@@ -18,18 +18,21 @@ package fr.jayblanc.mbyte.manager.process;
 
 import fr.jayblanc.mbyte.manager.auth.AuthenticationService;
 import fr.jayblanc.mbyte.manager.core.AccessDeniedException;
+import fr.jayblanc.mbyte.manager.notification.NotificationService;
+import fr.jayblanc.mbyte.manager.notification.NotificationServiceException;
+import fr.jayblanc.mbyte.manager.notification.entity.Event;
 import fr.jayblanc.mbyte.manager.process.entity.Process;
 import fr.jayblanc.mbyte.manager.process.entity.ProcessContext;
 import fr.jayblanc.mbyte.manager.process.entity.ProcessStatus;
 import fr.jayblanc.mbyte.manager.process.task.TaskRequest;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,7 +45,8 @@ public class ProcessEngineBean implements ProcessEngine, ProcessEngineAdmin {
     private static final Logger LOGGER = Logger.getLogger(ProcessEngineBean.class.getName());
 
     @Inject AuthenticationService auth;
-    @Inject Event<TaskEvent> taskEvent;
+    @Inject NotificationService notification;
+    @Inject jakarta.enterprise.event.Event<TaskEvent> taskEvent;
     @Inject EntityManager em;
 
     @PostConstruct
@@ -53,7 +57,7 @@ public class ProcessEngineBean implements ProcessEngine, ProcessEngineAdmin {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public String startProcess(ProcessDefinition processDef) throws ProcessAlreadyRunningException {
+    public String startProcess(ProcessDefinition processDef) throws ProcessAlreadyRunningException, NotificationServiceException {
         LOGGER.log(Level.INFO,"Starting new process: {0}", processDef.getName());
         if (this.findRunningProcessesForApp(processDef.getAppId()).stream().anyMatch(p -> p.getName().equals(processDef.getName()))) {
             throw new ProcessAlreadyRunningException("A process with name: " + processDef.getName() + " is already running for application with id: " + processDef.getAppId());
@@ -64,6 +68,9 @@ public class ProcessEngineBean implements ProcessEngine, ProcessEngineAdmin {
         process.setStartDate(System.currentTimeMillis());
         em.persist(process);
         this.scheduleNextTask(process);
+        notification.notify(process.getOwner(), Event.TYPE_PROCESS_STARTED, auth.getConnectedIdentifier(),
+                "Process " + process.getName() + " started for application " + process.getAppId(),
+                Map.of("processId", process.getId(), "processName", process.getName(), "appId", process.getAppId()));
         return process.getId();
     }
 
@@ -115,7 +122,8 @@ public class ProcessEngineBean implements ProcessEngine, ProcessEngineAdmin {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void completeTask(String processId, String taskId, String taskLog, ProcessContext ctx) throws ProcessNotFoundException {
+    public void completeTask(String processId, String taskId, String taskLog, ProcessContext ctx)
+            throws ProcessNotFoundException, NotificationServiceException {
         Process instance = this.findById(processId);
         LOGGER.log(Level.INFO,  "Process.{0}[{1}].task[{2}] completed", new Object[]{instance.getName(), instance.getId(), taskId});
         instance.appendLog(taskLog);
@@ -142,10 +150,17 @@ public class ProcessEngineBean implements ProcessEngine, ProcessEngineAdmin {
         instance.setStatus(ProcessStatus.FAILED);
         instance.appendLog("Process." + instance.getName()).appendLog(".task[").appendLog(taskId).appendLog("] failed: ").appendLog(e.getMessage()).appendLog("\n");
         instance.setEndDate(System.currentTimeMillis());
+        try {
+            notification.notify(instance.getOwner(), Event.TYPE_PROCESS_FAILED, instance.getOwner(),
+                    "Process " + instance.getName() + " failed for application " + instance.getAppId() + ": " + e.getMessage(),
+                    Map.of("processId", instance.getId(), "processName", instance.getName(), "appId", instance.getAppId()));
+        } catch (NotificationServiceException nse) {
+            LOGGER.log(Level.SEVERE, "Unable to send process failed notification for process id: " + instance.getId(), nse);
+        }
         //TODO If the process is configured to rollback on failure, schedule rollback tasks
     }
 
-    private void scheduleNextTask(Process instance) {
+    private void scheduleNextTask(Process instance) throws NotificationServiceException {
         if (instance.hasNextTask()) {
             LOGGER.log(Level.INFO,  "Process.{0}[{1}].task[{2}] scheduled", new Object[]{instance.getName(), instance.getId(), instance.getNextTaskId()});
             TaskRequest taskRequest = new TaskRequest(instance.getId(), instance.getName(), instance.getNextTaskId(), instance.getContext());
@@ -156,6 +171,9 @@ public class ProcessEngineBean implements ProcessEngine, ProcessEngineAdmin {
             LOGGER.log(Level.INFO,  "Process.{0}[{1}] completed", new Object[]{instance.getName(), instance.getId()});
             instance.setEndDate(System.currentTimeMillis());
             instance.setStatus(ProcessStatus.COMPLETED);
+            notification.notify(instance.getOwner(), Event.TYPE_PROCESS_COMPLETED, instance.getOwner(),
+                    "Process " + instance.getName() + " completed for application " + instance.getAppId(),
+                    Map.of("processId", instance.getId(), "processName", instance.getName(), "appId", instance.getAppId()));
         }
     }
 

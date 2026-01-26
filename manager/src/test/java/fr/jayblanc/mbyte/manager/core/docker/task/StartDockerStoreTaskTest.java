@@ -18,12 +18,9 @@ package fr.jayblanc.mbyte.manager.core.docker.task;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
-import com.github.dockerjava.api.model.Bind;
-import com.github.dockerjava.api.model.Container;
-import com.github.dockerjava.api.model.HostConfig;
-import com.github.dockerjava.api.model.Network;
-import com.github.dockerjava.api.model.Volume;
-import fr.jayblanc.mbyte.manager.core.runtime.task.store.StartDockerStoreTask;
+import com.github.dockerjava.api.model.*;
+import fr.jayblanc.mbyte.manager.core.runtime.task.container.StartDockerContainerTask;
+import fr.jayblanc.mbyte.manager.core.runtime.task.store.CreateDockerStoreTask;
 import fr.jayblanc.mbyte.manager.process.TaskException;
 import fr.jayblanc.mbyte.manager.process.TaskStatus;
 import fr.jayblanc.mbyte.manager.process.entity.ProcessContext;
@@ -72,7 +69,8 @@ public class StartDockerStoreTaskTest {
     private static String storeVolumeName;
     private static String storeContainerName;
 
-    @Inject StartDockerStoreTask storeHandler;
+    @Inject CreateDockerStoreTask createHandler;
+    @Inject StartDockerContainerTask startHandler;
     @Inject DockerClient client;
 
     @BeforeAll
@@ -181,8 +179,8 @@ public class StartDockerStoreTaskTest {
     @Transactional
     public void testBadContext() {
         LOGGER.log(Level.INFO, "Testing bad context for start store...");
-        assertThrows(TaskException.class, storeHandler::execute, "Expected TaskException for bad context");
-        assertEquals(TaskStatus.FAILED, storeHandler.getStatus(), "Expected task status to be FAILED for bad context");
+        assertThrows(TaskException.class, createHandler::execute, "Expected TaskException for bad context");
+        assertEquals(TaskStatus.FAILED, createHandler.getStatus(), "Expected task status to be FAILED for bad context");
     }
 
     @Test
@@ -190,33 +188,38 @@ public class StartDockerStoreTaskTest {
     public void testStartStoreWithDatabase() throws TaskException {
         LOGGER.log(Level.INFO, "Testing starting store container with a database...");
 
-        ProcessContext storeContext = new ProcessContext();
-        storeContext.setValue(StartDockerStoreTask.NETWORK_NAME, networkName);
+        ProcessContext context = new ProcessContext();
+        context.setValue(CreateDockerStoreTask.NETWORK_NAME, networkName);
         // The image must exist locally for the test.
-        storeContext.setValue(StartDockerStoreTask.STORE_IMAGE_NAME, STORE_IMAGE);
-        storeContext.setValue(StartDockerStoreTask.STORE_NAME, "test");
-        storeContext.setValue(StartDockerStoreTask.STORE_VOLUME_NAME, storeVolumeName);
-        storeContext.setValue(StartDockerStoreTask.STORE_CONTAINER_NAME, storeContainerName);
-        storeContext.setValue(StartDockerStoreTask.STORE_OWNER, "test");
-        storeContext.setValue(StartDockerStoreTask.STORE_FQDN, "test.stores.local.test");
-        storeContext.setValue(StartDockerStoreTask.STORE_TOPOLOGY_ENABLED, false);
-        storeContext.setValue(StartDockerStoreTask.STORE_DB_CONTAINER_NAME, dbContainerName);
-        storeContext.setValue(StartDockerStoreTask.STORE_DB_NAME, "test");
-        storeContext.setValue(StartDockerStoreTask.STORE_DB_USER, "test");
-        storeContext.setValue(StartDockerStoreTask.STORE_DB_PASSWORD, "test");
-
-        storeHandler.setContext(storeContext);
-        storeHandler.execute();
-
-        assertEquals(TaskStatus.COMPLETED, storeHandler.getStatus(), "Expected store task status to be COMPLETED");
-        assertTrue(storeHandler.getLog().contains("Store container"), "Expected log to mention store container");
+        context.setValue(CreateDockerStoreTask.STORE_IMAGE_NAME, STORE_IMAGE);
+        context.setValue(CreateDockerStoreTask.STORE_NAME, "test");
+        context.setValue(CreateDockerStoreTask.STORE_VOLUME_NAME, storeVolumeName);
+        context.setValue(CreateDockerStoreTask.STORE_CONTAINER_NAME, storeContainerName);
+        context.setValue(CreateDockerStoreTask.STORE_OWNER, "test");
+        context.setValue(CreateDockerStoreTask.STORE_FQDN, "test.stores.local.test");
+        context.setValue(CreateDockerStoreTask.STORE_TOPOLOGY_ENABLED, false);
+        context.setValue(CreateDockerStoreTask.STORE_DB_CONTAINER_NAME, dbContainerName);
+        context.setValue(CreateDockerStoreTask.STORE_DB_NAME, "test");
+        context.setValue(CreateDockerStoreTask.STORE_DB_USER, "test");
+        context.setValue(CreateDockerStoreTask.STORE_DB_PASSWORD, "test");
+        createHandler.setContext(context);
+        createHandler.execute();
+        assertEquals(TaskStatus.COMPLETED, createHandler.getStatus(), "Expected store task status to be COMPLETED");
+        assertTrue(createHandler.getLog().contains("Store container"), "Expected log to mention store container");
 
         Optional<Container> created = client.listContainersCmd().withShowAll(true).exec().stream()
                 .filter(c -> c.getNames() != null)
                 .filter(c -> Arrays.asList(c.getNames()).contains(("/" + storeContainerName)))
                 .findFirst();
-
         assertTrue(created.isPresent(), "Expected store container to exist after handler execution");
+
+        LOGGER.log(Level.INFO, "Testing starting store container...");
+        context = new ProcessContext();
+        context.setValue(StartDockerContainerTask.CONTAINER_NAME, storeContainerName);
+        startHandler.setContext(context);
+        startHandler.execute();
+        assertEquals(TaskStatus.COMPLETED, startHandler.getStatus(), "Expected task status to be COMPLETED");
+        assertTrue(startHandler.getLog().contains("Container started"), "Expected log to mention database container");
 
         // Ensure the Quarkus application is actually started.
         awaitStoreHealth(created.get().getId());

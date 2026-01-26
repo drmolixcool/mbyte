@@ -55,10 +55,10 @@ public class EventSocket {
         }
     }
 
-    @ConsumeEvent(NotificationService.NOTIFICATION_TOPIC)
+    @ConsumeEvent(value = NotificationService.NOTIFICATION_TOPIC, blocking = true)
     public void onMessage(Event event) {
-        LOGGER.log(Level.INFO, "Received event, checking connection owner");
-        if (event.getSource().equals(auth.getConnectedIdentifier())) {
+        LOGGER.log(Level.INFO, "Received event, checking connection owner {0} against event owner {1}", new Object[]{auth.getConnectedIdentifier(), event.getOwner()});
+        if (event.getOwner().equals(auth.getConnectedIdentifier())) {
             LOGGER.log(Level.INFO, "Sending event to websocket connection {0}", connection);
             try {
                 connection.sendTextAndAwait(objectMapper.writeValueAsString(event));

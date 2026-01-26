@@ -16,7 +16,6 @@
  */
 package fr.jayblanc.mbyte.manager.notification;
 
-import fr.jayblanc.mbyte.manager.auth.AuthenticationService;
 import fr.jayblanc.mbyte.manager.notification.entity.Event;
 import io.vertx.mutiny.core.eventbus.EventBus;
 import jakarta.annotation.PreDestroy;
@@ -40,25 +39,24 @@ public class NotificationServiceBean implements NotificationService {
 
     @Inject EventBus bus;
     @Inject TransactionManager tm;
-    @Inject AuthenticationService auth;
 
     public NotificationServiceBean() {
         LOGGER.log(Level.INFO, "Creating NotificationServiceBean");
     }
 
-    @Override public void notify(String type, String source) throws NotificationServiceException {
+    @Override public void notify(String owner, String type, String source) throws NotificationServiceException {
         LOGGER.log(Level.INFO, "Throwing event of type: {0}", type);
         try {
-            events.add(Event.build(auth.getConnectedIdentifier(), type, source));
+            events.add(Event.build(owner, type, source));
         } catch (Exception e) {
             throw new NotificationServiceException("Unable to throw event", e);
         }
     }
 
-    @Override public void notify(String type, String source, String message, Map<String, String> params) throws NotificationServiceException {
+    @Override public void notify(String owner, String type, String source, String message, Map<String, String> params) throws NotificationServiceException {
         LOGGER.log(Level.INFO, "Throwing event of type: {0}", type);
         try {
-            events.add(Event.build(auth.getConnectedIdentifier(), type, source, message, params));
+            events.add(Event.build(owner, type, source, message, params));
         } catch (Exception e) {
             throw new NotificationServiceException("Unable to throw event", e);
         }

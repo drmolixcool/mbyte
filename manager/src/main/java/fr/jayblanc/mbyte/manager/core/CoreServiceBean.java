@@ -20,6 +20,9 @@ import fr.jayblanc.mbyte.manager.auth.AuthenticationService;
 import fr.jayblanc.mbyte.manager.core.entity.Application;
 import fr.jayblanc.mbyte.manager.core.entity.Environment;
 import fr.jayblanc.mbyte.manager.core.entity.EnvironmentEntry;
+import fr.jayblanc.mbyte.manager.notification.NotificationService;
+import fr.jayblanc.mbyte.manager.notification.NotificationServiceException;
+import fr.jayblanc.mbyte.manager.notification.entity.Event;
 import fr.jayblanc.mbyte.manager.process.ProcessAlreadyRunningException;
 import fr.jayblanc.mbyte.manager.process.ProcessDefinition;
 import fr.jayblanc.mbyte.manager.process.ProcessEngine;
@@ -36,12 +39,15 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static org.bouncycastle.oer.its.ieee1609dot2.EndEntityType.app;
+
 @ApplicationScoped
 public class CoreServiceBean implements CoreService, CoreServiceAdmin {
 
     private static final Logger LOGGER = Logger.getLogger(CoreServiceBean.class.getName());
 
     @Inject AuthenticationService authentication;
+    @Inject NotificationService notification;
     @Inject ApplicationDescriptorRegistry appRegistry;
     @Inject ApplicationCommandProvider commandsProvider;
     @Inject ProcessEngine processEngine;
@@ -51,7 +57,7 @@ public class CoreServiceBean implements CoreService, CoreServiceAdmin {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRED)
-    public String createApp(String type, String name) throws ApplicationDescriptorNotFoundException {
+    public String createApp(String type, String name) throws ApplicationDescriptorNotFoundException, NotificationServiceException {
         LOGGER.log(Level.INFO, "Creating new application of type: {0} with name: {1}", new Object[] {type, name});
         String appid = UUID.randomUUID().toString();
         Application application = new Application();
@@ -64,6 +70,9 @@ public class CoreServiceBean implements CoreService, CoreServiceAdmin {
         em.persist(application);
         Environment initialEnv = appRegistry.findDescriptor(type).getInitialEnv(config.instance(), appid, name, application.getOwner());
         em.persist(initialEnv);
+        notification.notify(application.getOwner(), Event.TYPE_APP_CREATED, application.getId(),
+                "Application created with id: " + application.getId(),
+                Map.of("appId", application.getId(), "appName", application.getName(), "appType", application.getType()));
         return appid;
     }
 
@@ -77,11 +86,15 @@ public class CoreServiceBean implements CoreService, CoreServiceAdmin {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRED)
-    public Environment updateAppEnv(String id, Set<EnvironmentEntry> entries) throws ApplicationNotFoundException, AccessDeniedException, EnvironmentNotFoundException {
+    public Environment updateAppEnv(String id, Set<EnvironmentEntry> entries)
+            throws ApplicationNotFoundException, AccessDeniedException, EnvironmentNotFoundException, NotificationServiceException {
         LOGGER.log(Level.INFO, "Updating environment for app id: {0}", id);
         Application app = this.getApp(id);
         Environment env = this.findEnvByApp(app.getId());
         env.addAll(entries);
+        notification.notify(app.getOwner(), Event.TYPE_ENV_UPDATED, id,
+                "Environment updated for app id: " + id,
+                Map.of("appId", app.getId(), "appName", app.getName()));
         return env;
     }
 
@@ -89,14 +102,17 @@ public class CoreServiceBean implements CoreService, CoreServiceAdmin {
     @Transactional(Transactional.TxType.REQUIRED)
     public String runAppCommand(String id, String name, Map<String, String> params)
             throws ApplicationNotFoundException, AccessDeniedException, EnvironmentNotFoundException, ApplicationCommandNotFoundException,
-            ProcessAlreadyRunningException {
+            ProcessAlreadyRunningException, NotificationServiceException {
         LOGGER.log(Level.INFO, "Running command: {0} for app id: {1}", new  Object[]{name, id});
         Application app = this.getApp(id);
         Environment env = this.findEnvByApp(app.getId());
         ApplicationCommand command = commandsProvider.findCommand(app.getType(), name);
         ProcessDefinition definition = command.buildProcessDefinition(env);
         String pid = processEngine.startProcess(definition);
-        LOGGER.log(Level.INFO, "Started command's process: {0}",  pid);
+        LOGGER.log(Level.INFO, "Started command''s process: {0}",  pid);
+        notification.notify(app.getOwner(), Event.TYPE_APP_COMMAND_RUN, app.getId(),
+                "Running command: " + name + " for app id: " + id,
+                Map.of("appId", app.getId(), "appName", app.getName(), "commandName", name, "processId", pid));
         return pid;
     }
 
@@ -136,10 +152,13 @@ public class CoreServiceBean implements CoreService, CoreServiceAdmin {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRED)
-    public void dropApp(String id) throws ApplicationNotFoundException {
+    public void dropApp(String id) throws ApplicationNotFoundException, NotificationServiceException {
         LOGGER.log(Level.INFO, "Dropping application for id: {0}", id);
         Application application  = findAppById(id);
         em.remove(application);
+        notification.notify(application.getOwner(), Event.TYPE_APP_DELETED, application.getId(),
+                "Application deleted with id: " + application.getId(),
+                Map.of("appId", application.getId(), "appName", application.getName(), "appType", application.getType()));
     }
 
     @Override
@@ -151,10 +170,14 @@ public class CoreServiceBean implements CoreService, CoreServiceAdmin {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void systemUpdateAppStatus(String id, ApplicationStatus status) throws ApplicationNotFoundException {
+    public void systemUpdateAppStatus(String id, ApplicationStatus status) throws ApplicationNotFoundException,
+            NotificationServiceException {
         LOGGER.log(Level.INFO, "## SYSTEM ## Updating application status for id: {0} to status: {1}", new Object[]{id, status});
         Application application = findAppById(id);
         application.setStatus(status);
+        notification.notify(application.getOwner(), Event.TYPE_APP_STATUS_UPDATED, application.getId(),
+                "Application status updated to: " + status,
+                Map.of("appId", application.getId(), "appName", application.getName(), "appType", application.getType(), "appStatus", status.toString()));
     }
 
     private Environment findEnvByApp(String appId) throws EnvironmentNotFoundException {

@@ -19,7 +19,8 @@ package fr.jayblanc.mbyte.manager.core.docker.task;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.Network;
-import fr.jayblanc.mbyte.manager.core.runtime.task.database.StartDockerPgSQLTask;
+import fr.jayblanc.mbyte.manager.core.runtime.task.container.StartDockerContainerTask;
+import fr.jayblanc.mbyte.manager.core.runtime.task.database.CreateDockerPgSQLTask;
 import fr.jayblanc.mbyte.manager.process.TaskException;
 import fr.jayblanc.mbyte.manager.process.TaskStatus;
 import fr.jayblanc.mbyte.manager.process.entity.ProcessContext;
@@ -48,7 +49,8 @@ public class StartDockerPgSQLTaskTest {
     private static final String VOLUME_NAME_PREFIX = "test_start_docker_pgsql_volume_";
     private static final String CONTAINER_NAME_PREFIX = "test_start_docker_pgsql_container_";
 
-    @Inject StartDockerPgSQLTask handler;
+    @Inject CreateDockerPgSQLTask createHandler;
+    @Inject StartDockerContainerTask startHandler;
     @Inject DockerClient client;
 
     @AfterEach
@@ -106,15 +108,15 @@ public class StartDockerPgSQLTaskTest {
     @Test
     @Transactional
     public void testBadContext() {
-        LOGGER.log(Level.INFO, "Testing bad context for start database...");
-        assertThrows(TaskException.class, handler::execute, "Expected TaskException for bad context");
-        assertEquals(TaskStatus.FAILED, handler.getStatus(), "Expected task status to be FAILED for bad context");
+        LOGGER.log(Level.INFO, "Testing bad context for create database...");
+        assertThrows(TaskException.class, createHandler::execute, "Expected TaskException for bad context");
+        assertEquals(TaskStatus.FAILED, createHandler.getStatus(), "Expected task status to be FAILED for bad context");
     }
 
     @Test
     @Transactional
     public void testStartDatabase() throws TaskException {
-        LOGGER.log(Level.INFO, "Testing starting pgsql container...");
+        LOGGER.log(Level.INFO, "Testing creating pgsql container...");
 
         String suffix = Long.toString(System.currentTimeMillis());
         String networkName = NETWORK_NAME_PREFIX + suffix;
@@ -126,27 +128,31 @@ public class StartDockerPgSQLTaskTest {
         client.createVolumeCmd().withName(volumeName).exec();
 
         ProcessContext context = new ProcessContext();
-        context.setValue(StartDockerPgSQLTask.NETWORK_NAME, networkName);
-        context.setValue(StartDockerPgSQLTask.DB_VOLUME_NAME, volumeName);
-        context.setValue(StartDockerPgSQLTask.DB_CONTAINER_NAME, containerName);
-        context.setValue(StartDockerPgSQLTask.DB_USER, "test");
-        context.setValue(StartDockerPgSQLTask.DB_PASSWORD, "test");
-        context.setValue(StartDockerPgSQLTask.DB_NAME, "testdb");
-        handler.setContext(context);
-
-        handler.execute();
-
-        assertEquals(TaskStatus.COMPLETED, handler.getStatus(), "Expected task status to be COMPLETED");
-        assertTrue(handler.getLog().contains("Database container"), "Expected log to mention database container");
+        context.setValue(CreateDockerPgSQLTask.NETWORK_NAME, networkName);
+        context.setValue(CreateDockerPgSQLTask.DB_VOLUME_NAME, volumeName);
+        context.setValue(CreateDockerPgSQLTask.DB_CONTAINER_NAME, containerName);
+        context.setValue(CreateDockerPgSQLTask.DB_USER, "test");
+        context.setValue(CreateDockerPgSQLTask.DB_PASSWORD, "test");
+        context.setValue(CreateDockerPgSQLTask.DB_NAME, "testdb");
+        createHandler.setContext(context);
+        createHandler.execute();
+        assertEquals(TaskStatus.COMPLETED, createHandler.getStatus(), "Expected task status to be COMPLETED");
+        assertTrue(createHandler.getLog().contains("Database container"), "Expected log to mention database container");
 
         Optional<Container> created = client.listContainersCmd().withShowAll(true).exec().stream()
                 .filter(c -> c.getNames() != null)
                 .filter(c -> java.util.Arrays.stream(c.getNames()).anyMatch(n -> ("/" + containerName).equals(n)))
                 .findFirst();
-
-        //TODO Test a connection to the db
-
         assertTrue(created.isPresent(), "Expected container to exist after handler execution");
+
+        LOGGER.log(Level.INFO, "Testing starting pgsql container...");
+        context = new ProcessContext();
+        context.setValue(StartDockerContainerTask.CONTAINER_NAME, containerName);
+        startHandler.setContext(context);
+        startHandler.execute();
+        assertEquals(TaskStatus.COMPLETED, startHandler.getStatus(), "Expected task status to be COMPLETED");
+        assertTrue(startHandler.getLog().contains("Container started"), "Expected log to mention database container");
+
     }
 }
 

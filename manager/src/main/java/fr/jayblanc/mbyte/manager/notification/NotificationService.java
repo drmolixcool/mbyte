@@ -22,8 +22,8 @@ public interface NotificationService {
 
     String NOTIFICATION_TOPIC = "notification";
 
-    void notify(String type, String source) throws NotificationServiceException;
+    void notify(String owner, String type, String source) throws NotificationServiceException;
 
-    void notify(String type, String source, String message, Map<String, String> params) throws NotificationServiceException;
+    void notify(String owner, String type, String source, String message, Map<String, String> params) throws NotificationServiceException;
 
 }

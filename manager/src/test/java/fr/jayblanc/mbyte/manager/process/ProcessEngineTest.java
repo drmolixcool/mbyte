@@ -17,6 +17,7 @@
 package fr.jayblanc.mbyte.manager.process;
 
 import fr.jayblanc.mbyte.manager.core.AccessDeniedException;
+import fr.jayblanc.mbyte.manager.notification.NotificationServiceException;
 import fr.jayblanc.mbyte.manager.process.entity.Process;
 import fr.jayblanc.mbyte.manager.process.entity.ProcessStatus;
 import io.quarkus.test.junit.QuarkusTest;
@@ -43,7 +44,8 @@ public class ProcessEngineTest {
     @Test
     @Transactional
     void testProcessWithDummyTask()
-            throws InterruptedException, AccessDeniedException, ProcessNotFoundException, ProcessAlreadyRunningException {
+            throws InterruptedException, AccessDeniedException, ProcessNotFoundException, ProcessAlreadyRunningException,
+            NotificationServiceException {
         ProcessDefinition definition = ProcessDefinition.builder()
                 .withName("TestDummyProcess")
                 .addTask(DummyTestTask.TASK_NAME, Map.of(DummyTestTask.HELLO_NAME, "Sheldon"))
@@ -79,7 +81,8 @@ public class ProcessEngineTest {
     @Test
     @Transactional
     void testProcessWithTwoDummyTask()
-            throws InterruptedException, AccessDeniedException, ProcessNotFoundException, ProcessAlreadyRunningException {
+            throws InterruptedException, AccessDeniedException, ProcessNotFoundException, ProcessAlreadyRunningException,
+            NotificationServiceException {
         ProcessDefinition definition = ProcessDefinition.builder()
                 .withName("TestDoubleDummyProcess")
                 .addTask(DummyTestTask.TASK_NAME, Map.of(DummyTestTask.HELLO_NAME, "Sheldon"))
@@ -104,7 +107,8 @@ public class ProcessEngineTest {
     @Test
     @Transactional
     void testProcessWithFailingTask()
-            throws InterruptedException, AccessDeniedException, ProcessNotFoundException, ProcessAlreadyRunningException {
+            throws InterruptedException, AccessDeniedException, ProcessNotFoundException, ProcessAlreadyRunningException,
+            NotificationServiceException {
         ProcessDefinition definition = ProcessDefinition.builder()
                 .withName("TestFailingProcess")
                 .addTask(DummyTestTask.TASK_NAME, Map.of(DummyTestTask.HELLO_NAME, "Rajesh"))

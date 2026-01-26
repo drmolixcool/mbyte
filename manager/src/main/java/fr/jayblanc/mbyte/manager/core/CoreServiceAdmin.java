@@ -17,11 +17,12 @@
 package fr.jayblanc.mbyte.manager.core;
 
 import fr.jayblanc.mbyte.manager.core.entity.Application;
+import fr.jayblanc.mbyte.manager.notification.NotificationServiceException;
 
 public interface CoreServiceAdmin {
 
     Application systemGetApp(String id) throws ApplicationNotFoundException;
 
-    void systemUpdateAppStatus(String id, ApplicationStatus status) throws ApplicationNotFoundException;
+    void systemUpdateAppStatus(String id, ApplicationStatus status) throws ApplicationNotFoundException, NotificationServiceException;
 
 }

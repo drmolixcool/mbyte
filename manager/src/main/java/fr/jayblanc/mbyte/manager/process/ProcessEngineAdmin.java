@@ -16,6 +16,7 @@
  */
 package fr.jayblanc.mbyte.manager.process;
 
+import fr.jayblanc.mbyte.manager.notification.NotificationServiceException;
 import fr.jayblanc.mbyte.manager.process.entity.ProcessContext;
 
 /**
@@ -27,7 +28,8 @@ public interface ProcessEngineAdmin {
 
     void startTask(String processId, String taskId) throws ProcessNotFoundException;
 
-    void completeTask(String processId, String taskId, String taskLog, ProcessContext ctx) throws ProcessNotFoundException;
+    void completeTask(String processId, String taskId, String taskLog, ProcessContext ctx)
+            throws ProcessNotFoundException, NotificationServiceException;
 
     void failTask(String processId, String taskId, String taskLog, Exception wte, ProcessContext ctx);
 

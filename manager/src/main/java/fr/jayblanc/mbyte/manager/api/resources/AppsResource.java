@@ -19,6 +19,7 @@ package fr.jayblanc.mbyte.manager.api.resources;
 import fr.jayblanc.mbyte.manager.api.dto.CommandDescriptor;
 import fr.jayblanc.mbyte.manager.core.*;
 import fr.jayblanc.mbyte.manager.core.entity.Application;
+import fr.jayblanc.mbyte.manager.notification.NotificationServiceException;
 import fr.jayblanc.mbyte.manager.process.ProcessAlreadyRunningException;
 import fr.jayblanc.mbyte.manager.process.ProcessEngine;
 import fr.jayblanc.mbyte.manager.process.ProcessNotFoundException;
@@ -52,7 +53,7 @@ public class AppsResource {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.APPLICATION_JSON)
     public Response createApp(@FormParam("type") String type, @FormParam("name") String name, @Context UriInfo uriInfo)
-            throws ApplicationDescriptorNotFoundException {
+            throws ApplicationDescriptorNotFoundException, NotificationServiceException {
         LOGGER.log(Level.INFO, "POST /api/apps");
         String id = core.createApp(type, name);
         LOGGER.log(Level.INFO, "Application created with id: {0}", id);
@@ -83,7 +84,7 @@ public class AppsResource {
     @Produces(MediaType.APPLICATION_JSON)
     public String createProc(@PathParam("id") String id, @FormParam("name") String name)
             throws ApplicationNotFoundException, AccessDeniedException, EnvironmentNotFoundException, ApplicationCommandNotFoundException,
-            ProcessAlreadyRunningException {
+            ProcessAlreadyRunningException, NotificationServiceException {
         LOGGER.log(Level.INFO, "POST /api/apps/{0}/procs", id);
         return core.runAppCommand(id, name, null);
     }

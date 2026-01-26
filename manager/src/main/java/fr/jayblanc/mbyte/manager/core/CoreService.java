@@ -19,6 +19,7 @@ package fr.jayblanc.mbyte.manager.core;
 import fr.jayblanc.mbyte.manager.core.entity.Application;
 import fr.jayblanc.mbyte.manager.core.entity.Environment;
 import fr.jayblanc.mbyte.manager.core.entity.EnvironmentEntry;
+import fr.jayblanc.mbyte.manager.notification.NotificationServiceException;
 import fr.jayblanc.mbyte.manager.process.ProcessAlreadyRunningException;
 
 import java.util.List;
@@ -27,7 +28,7 @@ import java.util.Set;
 
 public interface CoreService {
 
-    String createApp(String type, String name) throws ApplicationDescriptorNotFoundException;
+    String createApp(String type, String name) throws ApplicationDescriptorNotFoundException, NotificationServiceException;
 
     List<Application> listConnectedUserApps();
 
@@ -37,12 +38,13 @@ public interface CoreService {
 
     Environment getAppEnv(String id) throws ApplicationNotFoundException, AccessDeniedException, EnvironmentNotFoundException;
 
-    Environment updateAppEnv(String id, Set<EnvironmentEntry> entries) throws ApplicationNotFoundException, AccessDeniedException, EnvironmentNotFoundException;
+    Environment updateAppEnv(String id, Set<EnvironmentEntry> entries)
+            throws ApplicationNotFoundException, AccessDeniedException, EnvironmentNotFoundException, NotificationServiceException;
 
     String runAppCommand(String id, String name, Map<String, String> params)
             throws ApplicationNotFoundException, AccessDeniedException, EnvironmentNotFoundException, ApplicationCommandNotFoundException,
-            ProcessAlreadyRunningException;
+            ProcessAlreadyRunningException, NotificationServiceException;
 
-    void dropApp(String id) throws ApplicationNotFoundException, CoreServiceException;
+    void dropApp(String id) throws ApplicationNotFoundException, CoreServiceException, NotificationServiceException;
 
 }

@@ -17,6 +17,7 @@
 package fr.jayblanc.mbyte.manager.process;
 
 import fr.jayblanc.mbyte.manager.core.AccessDeniedException;
+import fr.jayblanc.mbyte.manager.notification.NotificationServiceException;
 import fr.jayblanc.mbyte.manager.process.entity.Process;
 
 import java.util.List;
@@ -26,7 +27,7 @@ import java.util.List;
  */
 public interface ProcessEngine {
 
-    String startProcess(ProcessDefinition process) throws ProcessAlreadyRunningException;
+    String startProcess(ProcessDefinition process) throws ProcessAlreadyRunningException, NotificationServiceException;
 
     Process getProcess(String id) throws ProcessNotFoundException, AccessDeniedException;
 
