@@ -11,7 +11,10 @@ ENV KC_HOSTNAME_STRICT=false
 WORKDIR /opt/keycloak
 
 # Copy realm configuration for build-time provisioning
-COPY ./mbyte-realm.json /opt/keycloak/data/import/
+COPY ./provisioning/mbyte-realm.json /opt/keycloak/data/import/
+
+# Copy theme resources
+COPY ../keycloak-theme/src/main/resources/theme/mbyte /opt/keycloak/themes/mbyte/
 
 # for demonstration purposes only, please make sure to use proper certificates in production instead
 RUN keytool -genkeypair -storepass password -storetype PKCS12 -keyalg RSA -keysize 2048 -dname "CN=server" -alias server -ext "SAN:c=DNS:localhost,IP:127.0.0.1" -keystore conf/server.keystore

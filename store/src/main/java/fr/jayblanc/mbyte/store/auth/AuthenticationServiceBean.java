@@ -17,6 +17,7 @@
 package fr.jayblanc.mbyte.store.auth;
 
 import fr.jayblanc.mbyte.store.auth.entity.Account;
+import io.quarkus.oidc.UserInfo;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
@@ -30,11 +31,11 @@ import java.util.logging.Logger;
 @RequestScoped
 public class AuthenticationServiceBean implements AuthenticationService {
 
-    private static final Logger LOGGER = Logger.getLogger(AuthenticationService.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(AuthenticationServiceBean.class.getName());
 
-    @Inject JsonWebToken accessToken;
     @Inject SecurityIdentity identity;
     @Inject AuthenticationConfig config;
+    @Inject UserInfo userInfo;
 
     private static final Map<String, Account> profilesCache = new HashMap<>();
     static {
@@ -64,17 +65,17 @@ public class AuthenticationServiceBean implements AuthenticationService {
             profilesCache.put(connectedId, profile);
         }
         profile.setRoles(identity.getRoles().stream().toList());
-        if (accessToken.containsClaim("preferred_username")) {
-            profile.setUsername(accessToken.getClaim("preferred_username"));
+        if (userInfo != null)  {
+            profile.setUsername(userInfo.getPreferredUserName());
             if ( profile.getUsername().equals(config.owner()) ) {
-                LOGGER.log(Level.INFO, "User is owner: " + profile.getUsername());
+                LOGGER.log(Level.INFO, "User is owner: {0}", profile.getUsername());
                 profile.setOwner(true);
             } else {
-                LOGGER.log(Level.INFO, "User is NOT owner: " + profile.getUsername());
+                LOGGER.log(Level.INFO, "User is NOT owner: {0}", profile.getUsername());
                 profile.setOwner(false);
             }
-            profile.setFullname(accessToken.getClaim("given_name") + " " + accessToken.getClaim("family_name"));
-            profile.setEmail(accessToken.getClaim("email"));
+            profile.setFullname(userInfo.getName());
+            profile.setEmail(userInfo.getEmail());
         } else {
             profile.setOwner(false);
             LOGGER.log(Level.INFO, "Unable to get claims from token");

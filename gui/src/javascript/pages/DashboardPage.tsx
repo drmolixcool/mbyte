@@ -4,6 +4,7 @@ import {CreateStoreCard, DetailStoreCard} from '../components'
 import {useManagerStatus} from '../auth/useManagerStatus'
 import {useProfile} from '../auth/useProfile'
 import { useManagerApi } from '../api/ManagerApiProvider'
+import { useState } from 'react'
 
 type DashboardPageProps = {
   onNotify: (message: string) => void
@@ -15,11 +16,14 @@ export function DashboardPage({ onNotify }: DashboardPageProps) {
   const { profile } = useProfile()
   const managerApi = useManagerApi()
 
+  const [creationBusy, setCreationBusy] = useState(false)
+
   const storeApp = apps.find(a => a.type === 'DOCKER_STORE')
 
   const handleCreateStore = async () => {
     if (!profile?.id) return
     try {
+      setCreationBusy(true)
       const name = profile.username ?? profile.id
       await managerApi.createApp('DOCKER_STORE', name)
       reloadStatus()
@@ -27,6 +31,8 @@ export function DashboardPage({ onNotify }: DashboardPageProps) {
     } catch (error) {
       console.error('Failed to create store:', error)
       onNotify(t('dashboard.storeCreationFailed'))
+    } finally {
+      setCreationBusy(false)
     }
   }
 
@@ -46,8 +52,8 @@ export function DashboardPage({ onNotify }: DashboardPageProps) {
               <CCol xs={12}>
                 <CreateStoreCard
                   onCreate={handleCreateStore}
-                  disabled={false}
-                  busy={false}
+                  disabled={creationBusy}
+                  busy={creationBusy}
                 />
               </CCol>
             )}

@@ -17,8 +17,10 @@
 package fr.jayblanc.mbyte.manager.core.descriptor;
 
 import fr.jayblanc.mbyte.manager.core.ApplicationDescriptor;
+import fr.jayblanc.mbyte.manager.core.CoreConfig;
 import fr.jayblanc.mbyte.manager.core.entity.Environment;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 /**
  * @author Jerome Blanchard
@@ -27,6 +29,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class DockerStoreDescriptor implements ApplicationDescriptor {
 
     public static final String TYPE = "DOCKER_STORE";
+
+    @Inject CoreConfig config;
 
     public enum EnvKey {
         STORE_NAME,
@@ -57,7 +61,7 @@ public class DockerStoreDescriptor implements ApplicationDescriptor {
         env.addEntry(EnvKey.STORE_NAME.name(), name);
         env.addEntry(EnvKey.STORE_OWNER.name(), owner);
         env.addEntry(EnvKey.STORE_ENGINE.name(), "docker");
-        env.addEntry(EnvKey.STORE_IMAGE_NAME.name(), "mbyte/store:25.1-SNAPSHOT");
+        env.addEntry(EnvKey.STORE_IMAGE_NAME.name(), config.store().image() + ":" + config.store().version());
         env.addEntry(EnvKey.STORE_NETWORK_NAME.name(), realm);
         env.addEntry(EnvKey.STORE_DB_VOLUME_NAME.name(), realm + "." + name + ".db");
         env.addEntry(EnvKey.STORE_DB_CONTAINER_NAME.name(), realm + "." + name + ".db");
@@ -66,7 +70,7 @@ public class DockerStoreDescriptor implements ApplicationDescriptor {
         env.addSecretEntry(EnvKey.STORE_DB_PASSWORD.name(), "Pp@asSw#W0orRdD!");
         env.addEntry(EnvKey.STORE_VOLUME_NAME.name(), realm + "." + name + ".store");
         env.addEntry(EnvKey.STORE_CONTAINER_NAME.name(), realm + "." + name + ".store");
-        env.addEntry(EnvKey.STORE_FQDN.name(), name + ".s." + realm);
+        env.addEntry(EnvKey.STORE_FQDN.name(), name + "." + config.store().domain());
         env.addEntry(EnvKey.STORE_TOPOLOGY_ENABLED.name(), true);
         return env;
     }

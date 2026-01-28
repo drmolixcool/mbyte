@@ -12,6 +12,7 @@ Pré-requis
 - Docker et Docker Compose installés et la composition du dépôt démarrée (au moins `traefik`, `consul`, `db`, `keycloak` si vous suivez le `docker-compose.yml` fourni).
 - Maven (ou la wrapper `./mvnw`) disponible.
 - IntelliJ (ou un IDE capable d'exécuter une configuration Maven).
+- La GUI doit être lancée en local (suivez `DEPLOY_LOCAL_GUI.md`) pour qu'elle pointe vers le manager local.
 
 Contexte réseau utile (depuis `docker-compose.yml`)
 - DB (Postgres) : 172.25.0.4
@@ -22,7 +23,7 @@ Contexte réseau utile (depuis `docker-compose.yml`)
 Résumé des étapes
 1. Stopper seulement le container `manager` (Docker).
 2. Lancer le `manager` localement (IntelliJ / Maven) en pointant la configuration vers les IP des containers Docker (DB, Keycloak, Consul).
-3. Lancer la GUI en dev avec `VITE_API_MANAGER_BASE_URL=http://localhost:8080` et `VITE_OIDC_AUTHORITY` pointant vers Keycloak (container IP).
+3. Lancer la GUI en local avec `VITE_API_MANAGER_BASE_URL=http://localhost:8080` (voir `DEPLOY_LOCAL_GUI.md`).
 
 Étapes détaillées
 
@@ -76,38 +77,9 @@ Remarques :
 - Le manager est forcé sur le port 8080 ici pour correspondre à la configuration de la GUI en dev.
 - Les IP listées proviennent des adresses statiques définies dans `docker-compose.yml` et sont directement atteignables depuis l'hôte sur une installation Linux standard.
 
-3) Configurer et lancer la GUI (Vite)
+3) Lancer la GUI en local
 
-La GUI doit connaître :
-- l'URL du manager (API) : `VITE_API_MANAGER_BASE_URL` (pointant vers le manager local : `http://localhost:8080`)
-- l'autorité OIDC (Keycloak) : `VITE_OIDC_AUTHORITY` (pointant vers Keycloak container IP `http://172.25.0.5/realms/mbyte`)
-
-Exemple de démarrage :
-
-```bash
-# Depuis le dossier gui/
-VITE_API_MANAGER_BASE_URL=http://localhost:8080 \
-VITE_OIDC_AUTHORITY=http://172.25.0.5/realms/mbyte \
-VITE_OIDC_CLIENT_ID=mbyte \
-VITE_OIDC_SCOPE="openid profile email" \
-npm run dev
-```
-
-Ou créez un `gui/.env.local` (non commité) :
-
-```
-VITE_API_MANAGER_BASE_URL=http://localhost:8080
-VITE_OIDC_AUTHORITY=http://172.25.0.5/realms/mbyte
-VITE_OIDC_CLIENT_ID=mbyte
-VITE_OIDC_SCOPE=openid profile email
-```
-
-Puis :
-
-```bash
-cd gui
-npm run dev
-```
+Suivez le guide `DEPLOY_LOCAL_GUI.md` pour lancer la GUI en local, en configurant `VITE_API_MANAGER_BASE_URL=http://localhost:8080` (manager local) et `VITE_OIDC_AUTHORITY=http://172.25.0.5/realms/mbyte` (Keycloak Docker).
 
 4) Vérifications rapides (smoke test)
 - Ouvrez la GUI en dev (par défaut http://localhost:5173). Vous devriez pouvoir démarrer la connexion OIDC vers Keycloak (via l'IP 172.25.0.5).
@@ -133,7 +105,7 @@ http://localhost:8080/api/status
   - Vérifiez la configuration du realm / client dans l'import (`auth/mbyte-realm.json` apprécié dans l'image Keycloak).
 
 - La GUI se plaint que `VITE_API_MANAGER_BASE_URL` est manquant :
-  - Lancer vite en exportant la variable d'environnement (voir section 3) ou définir `gui/.env.local`.
+  - Assurez-vous de configurer la variable comme indiqué dans `DEPLOY_LOCAL_GUI.md` (section 2).
 
 6) Restauration du manager dans Docker
 

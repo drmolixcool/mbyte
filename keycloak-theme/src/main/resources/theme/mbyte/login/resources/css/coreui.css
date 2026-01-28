@@ -1,0 +1,32 @@
+/* Import CoreUI CSS */
+@import url('https://cdn.jsdelivr.net/npm/@coreui/coreui@5.1.2/dist/css/coreui.min.css');
+
+/* Override Keycloak styles to match CoreUI */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.login-pf {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+    background-color: #321fdb;
+    border-color: #321fdb;
+}
+
+.btn-primary:hover {
+    background-color: #2a17c4;
+    border-color: #2a17c4;
+}
+
+.form-control {
+    border-radius: 4px;
+}
+
+.alert {
+    border-radius: 4px;
+}

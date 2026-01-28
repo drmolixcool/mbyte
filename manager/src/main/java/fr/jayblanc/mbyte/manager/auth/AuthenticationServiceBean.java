@@ -64,7 +64,7 @@ public class AuthenticationServiceBean implements AuthenticationService {
             newprofile.setId(connectedId);
             if (userInfo != null)  {
                 newprofile.setUsername(userInfo.getPreferredUserName());
-                newprofile.setFullname(userInfo.getName() + " " + userInfo.getFamilyName());
+                newprofile.setFullname(userInfo.getName());
                 newprofile.setEmail(userInfo.getEmail());
             } else {
                 LOGGER.log(Level.INFO, "Unable to access User Info");

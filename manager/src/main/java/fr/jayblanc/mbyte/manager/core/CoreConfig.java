@@ -32,9 +32,11 @@ public interface CoreConfig {
 
     interface StoreConfig {
 
+        String image();
+
         String version();
 
-        String fqdn();
+        String domain();
 
     }
 

@@ -67,7 +67,6 @@
                         <image>
                             <name>mbyte/gui:${project.version}</name>
                             <build>
-                                <dockerFile>${project.basedir}/src/main/docker/Dockerfile</dockerFile>
                                 <contextDir>${project.basedir}</contextDir>
                             </build>
                         </image>

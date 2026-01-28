@@ -81,6 +81,7 @@ public class CreateDockerStoreTask extends Task {
             CreateContainerResponse response = client.createContainerCmd(imageName)
                     .withName(containerName)
                     .withHostName(containerName)
+                    .withExtraHosts("auth.mbyte.fr:172.25.0.2")
                     .withEnv(
                             "QUARKUS_HTTP_PORT=8080",
                             "STORE.ROOT=/home/jboss",
@@ -95,11 +96,11 @@ public class CreateDockerStoreTask extends Task {
                     )
                     .withLabels(Map.of(
                             "traefik.enable", "true",
-                            "traefik.docker.network", "mbyte",
-                            "traefik.http.routers." + storeOwner + ".rule", "Host(`" + storeFqdn + "`)",
-                            "traefik.http.routers." + storeOwner + ".entrypoints", "http",
-                            "traefik.http.routers." + storeOwner + ".service", storeOwner + "-http",
-                            "traefik.http.services." + storeOwner + "-http.loadbalancer.server.port","8080"
+                            "traefik.docker.network", networkName,
+                            "traefik.http.routers." + storeName + ".rule", "Host(`" + storeFqdn + "`)",
+                            "traefik.http.routers." + storeName + ".entrypoints", "websecure",
+                            "traefik.http.routers." + storeName + ".tls", "true",
+                            "traefik.http.services." + storeName + ".loadbalancer.server.port","8080"
                     ))
                     .withHostConfig(HostConfig.newHostConfig()
                             .withNetworkMode(networkName)

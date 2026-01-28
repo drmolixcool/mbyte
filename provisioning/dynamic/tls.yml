@@ -1,0 +1,4 @@
+tls:
+  certificates:
+    - certFile: /certs/mbyte.crt
+      keyFile: /certs/mbyte.key

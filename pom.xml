@@ -30,5 +30,6 @@
         <module>store</module>
         <module>manager</module>
         <module>gui</module>
+        <module>keycloak-theme</module>
     </modules>
 </project>

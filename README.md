@@ -75,13 +75,13 @@ For local development, the easiest way is to use /etc/hosts.
 Add in /etc/hosts the following lines : 
 
 ```
-127.0.0.1	auth.mbyte.fr www.mbyte.fr manager.mbyte.fr proxy.mbyte.fr registry.mbyte.fr sheldon.stores.mbyte.fr
+127.0.0.1	auth.mbyte.fr www.mbyte.fr manager.mbyte.fr proxy.mbyte.fr registry.mbyte.fr sheldon.s.mbyte.fr
 ```
 
 Note: You will have to add more entries for each store you create. For example, if you create a store with identifier `teststore`, you will have to add the following line : 
 
 ``` 
-127.0.0.1   teststore.stores.mbyte.fr
+127.0.0.1   teststore.s.mbyte.fr
 ```
 
 #### Using dnsmasq

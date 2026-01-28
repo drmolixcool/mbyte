@@ -1,0 +1,12 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>fr.jayblanc.mbyte</groupId>
+        <artifactId>parent</artifactId>
+        <version>25-SNAPSHOT</version>
+    </parent>
+    <artifactId>keycloak-theme</artifactId>
+    <name>The M[iage].byte project :: Keycloak Theme</name>
+    <packaging>jar</packaging>
+    <description>Custom Keycloak theme inspired by CoreUI for the mbyte project</description>
+</project>

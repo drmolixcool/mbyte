@@ -3,15 +3,19 @@ services:
     image: traefik:v3.6
     hostname: proxy
     container_name: mbyte.proxy
-    command: --api.insecure=true --providers.docker
+    command:
+      - "--configFile=/etc/traefik/traefik.yml"
     ports:
       - "80:80"
       - "443:443"
       - "8080:8080"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./provisioning/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./provisioning/dynamic:/etc/traefik/dynamic:ro
+      - ./provisioning/certs:/certs:ro
     networks:
-      mbyte:
+      mbyte.fr:
         ipv4_address: 172.25.0.2
 
   consul:
@@ -23,15 +27,19 @@ services:
       - CONSUL_BIND_INTERFACE=eth0
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=mbyte"
+      - "traefik.docker.network=mbyte.fr"
       - "traefik.http.routers.consul.rule=Host(`registry.mbyte.fr`)"
-      - "traefik.http.routers.consul.entrypoints=http"
-      - "traefik.http.routers.consul.service=consul-http"
-      - "traefik.http.services.consul-http.loadbalancer.server.port=8500"
+      - "traefik.http.routers.consul.entrypoints=websecure"
+      - "traefik.http.routers.consul.tls=true"
+      - "traefik.http.routers.consul-http.rule=Host(`registry.mbyte.fr`)"
+      - "traefik.http.routers.consul-http.entrypoints=web"
+      - "traefik.http.routers.consul-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.services.consul.loadbalancer.server.port=8500"
     depends_on:
       - traefik
     networks:
-      mbyte:
+      mbyte.fr:
         ipv4_address: 172.25.0.3
 
   db:
@@ -45,13 +53,13 @@ services:
       - mbyte.db.volume:/var/lib/postgresql
       - ./provisioning/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
-      mbyte:
+      mbyte.fr:
         ipv4_address: 172.25.0.4
 
   keycloak:
     build:
-      context: ./auth
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: auth/Dockerfile
     hostname: auth
     container_name: mbyte.auth
     command: start --optimized --import-realm
@@ -62,22 +70,30 @@ services:
       KC_DB_USERNAME: mbyte
       KC_DB_PASSWORD: password
       KC_HOSTNAME: auth.mbyte.fr
-      KC_HTTP_PORT: 80
-      KC_PROXY: edge
+      KC_HOSTNAME_PROTOCOL: https
       KC_HTTP_ENABLED: true
+      KC_HTTP_PORT: 80
+      KC_PROXY_HEADERS: xforwarded
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=mbyte"
+      - "traefik.docker.network=mbyte.fr"
       - "traefik.http.routers.keycloak.rule=Host(`auth.mbyte.fr`)"
-      - "traefik.http.routers.keycloak.entrypoints=http"
-      - "traefik.http.routers.keycloak.service=keycloak-http"
-      - "traefik.http.services.keycloak-http.loadbalancer.server.port=80"
+      - "traefik.http.routers.keycloak.entrypoints=websecure"
+      - "traefik.http.routers.keycloak.tls=true"
+      - "traefik.http.routers.keycloak-http.rule=Host(`auth.mbyte.fr`)"
+      - "traefik.http.routers.keycloak-http.entrypoints=web"
+      - "traefik.http.routers.keycloak-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.keycloak-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.keycloak-headers.headers.customrequestheaders.X-Forwarded-Host=auth.mbyte.fr"
+      - "traefik.http.routers.keycloak.middlewares=keycloak-headers"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=80"
     restart: always
     depends_on:
       - db
       - traefik
     networks:
-      mbyte:
+      mbyte.fr:
         ipv4_address: 172.25.0.5
         aliases:
           - auth.mbyte.fr
@@ -92,30 +108,58 @@ services:
       - keycloak
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:rw
+    extra_hosts:
+      - "auth.mbyte.fr:172.25.0.2"
     networks:
-      mbyte:
+      mbyte.fr:
         ipv4_address: 172.25.0.6
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=mbyte"
+      - "traefik.docker.network=mbyte.fr"
       - "traefik.http.routers.manager.rule=Host(`manager.mbyte.fr`)"
-      - "traefik.http.routers.manager.entrypoints=http"
-      - "traefik.http.routers.manager.service=manager-http"
-      - "traefik.http.services.manager-http.loadbalancer.server.port=8080"
+      - "traefik.http.routers.manager.entrypoints=websecure"
+      - "traefik.http.routers.manager.tls=true"
+      - "traefik.http.routers.manager-http.rule=Host(`manager.mbyte.fr`)"
+      - "traefik.http.routers.manager-http.entrypoints=web"
+      - "traefik.http.routers.manager-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.services.manager.loadbalancer.server.port=8080"
     environment:
       - QUARKUS_HTTP_PORT=8080
-      - QUARKUS_OIDC_AUTH_SERVER_URL=http://auth.mbyte.fr/realms/mbyte
-      - MANAGER.TOPOLOGY.HOST=consul
-      - MANAGER.TOPOLOGY.PORT=8500
+      - QUARKUS_OIDC_AUTH_SERVER_URL=https://auth.mbyte.fr/realms/mbyte
+      - MANAGER_TOPOLOGY_HOST=consul
+      - MANAGER_TOPOLOGY_PORT=8500
+      - MANAGER_INSTANCE=mbyte.fr
+
+  gui:
+    image: mbyte/gui:25.1-SNAPSHOT
+    hostname: www
+    container_name: mbyte.gui
+    depends_on:
+      - manager
+    networks:
+      mbyte.fr:
+        ipv4_address: 172.25.0.7
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=mbyte.fr"
+      - "traefik.http.routers.gui.rule=Host(`www.mbyte.fr`)"
+      - "traefik.http.routers.gui.entrypoints=websecure"
+      - "traefik.http.routers.gui.tls=true"
+      - "traefik.http.routers.gui-http.rule=Host(`www.mbyte.fr`)"
+      - "traefik.http.routers.gui-http.entrypoints=web"
+      - "traefik.http.routers.gui-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.services.gui.loadbalancer.server.port=80"
 
 networks:
-  mbyte:
+  mbyte.fr:
     name: mbyte.fr
     driver: bridge
     ipam:
       driver: default
       config:
-        - subnet: 172.25.0.0/24
+        - subnet: 172.25.0.0/16
 
 volumes:
   mbyte.db.volume:
