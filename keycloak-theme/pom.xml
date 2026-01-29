@@ -6,7 +6,7 @@
         <version>26</version>
     </parent>
     <artifactId>keycloak-theme</artifactId>
-  <version>26.1</version>
+  <version>26.2-SNAPSHOT</version>
     <name>The M[iage].byte project :: Keycloak Theme</name>
     <packaging>jar</packaging>
     <description>Custom Keycloak theme inspired by CoreUI for the mbyte project</description>
