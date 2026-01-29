@@ -28,10 +28,7 @@ import fr.jayblanc.mbyte.manager.process.TaskException;
 import jakarta.inject.Inject;
 import jakarta.transaction.TransactionScoped;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * @author Jerome Blanchard
@@ -140,7 +137,7 @@ public class CreateDockerStoreTask extends Task {
                     "QUARKUS.DATASOURCE.PASSWORD=" + dbPass,
                     "QUARKUS.DATASOURCE.JDBC.URL=jdbc:postgresql://" + dbContainerName + ":5432/" + dbName
             );
-            if (!envVars.containsAll(expectedEnv)) {
+            if (!new HashSet<>(envVars).containsAll(expectedEnv)) {
                 this.fail("Existing container environment variables do not match expected");
                 throw new TaskException("Existing container environment variables do not match expected");
             }

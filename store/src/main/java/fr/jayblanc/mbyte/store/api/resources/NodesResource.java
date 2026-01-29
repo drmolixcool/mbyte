@@ -51,7 +51,6 @@ public class NodesResource {
     private static final Logger LOGGER = Logger.getLogger(NodesResource.class.getName());
 
     @Inject FileService service;
-    @Inject AuthenticationService auth;
 
     @GET
     @Transactional(Transactional.TxType.REQUIRED)

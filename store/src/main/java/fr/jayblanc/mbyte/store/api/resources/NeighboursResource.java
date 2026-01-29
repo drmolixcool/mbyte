@@ -16,8 +16,6 @@
  */
 package fr.jayblanc.mbyte.store.api.resources;
 
-import fr.jayblanc.mbyte.store.auth.AuthenticationService;
-import fr.jayblanc.mbyte.store.topology.TopologyConfig;
 import fr.jayblanc.mbyte.store.topology.TopologyException;
 import fr.jayblanc.mbyte.store.topology.TopologyService;
 import fr.jayblanc.mbyte.store.topology.entity.Neighbour;
@@ -36,15 +34,13 @@ public class NeighboursResource {
 
     private static final Logger LOGGER = Logger.getLogger(NeighboursResource.class.getName());
 
-    @Inject TopologyConfig config;
-    @Inject TopologyService neighbourhood;
-    @Inject AuthenticationService auth;
+    @Inject TopologyService topology;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public List<Neighbour> getNeighbours() throws TopologyException {
         LOGGER.log(Level.INFO, "GET /api/network");
-        return neighbourhood.list();
+        return topology.list();
     }
 
 }
